@@ -1,6 +1,6 @@
 package algorithm
 
-import model.DataPoint
+import model.DataPointVector
 
 import scala.util.Random
 import scala.collection.mutable
@@ -16,7 +16,7 @@ object kSDA {
    * @param seed Optional seed for reproducibility. Defaults to a random seed.
    * @return An array of coordinates as tuples, in the form of (min, max).
    */
-  def divideSpace(dataset: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt()): Array[(Array[Float], Array[Float])] = {
+  def divideSpace(dataset: Array[DataPointVector], numberOfPartitions: Int, seed: Int = Random.nextInt()): Array[(Array[Float], Array[Float])] = {
     require(dataset.nonEmpty, "Dataset must not be empty")
     require(numberOfPartitions > 0, "Number of partitions must be greater than zero")
 
