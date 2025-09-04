@@ -1,6 +1,6 @@
 package algorithm
 
-import model.DataPoint
+import model.{DataPoint, Subspace}
 import utils.MapPointToVectorSpace
 
 import scala.util.Random
@@ -17,29 +17,24 @@ object kSDA {
    * @param seed Optional seed for reproducibility. Defaults to a random seed.
    * @return An array of coordinates as tuples, in the form of (min, max).
    */
-  def divideSpace(dataset: Array[DataPoint], pivots: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt()): Array[(Array[Float], Array[Float])] = {
+  def divideSpace(dataset: Array[DataPoint], pivots: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt()): Array[Subspace] = {
     require(dataset.nonEmpty, "Dataset must not be empty")
     require(numberOfPartitions > 0, "Number of partitions must be greater than zero")
 
     val rng = new Random(seed)
 
     dataset.foreach(point => point.vectorRep = MapPointToVectorSpace(point, pivots))
-    val q = mutable.Queue.apply(dataset)
+    val subspace: Subspace = new Subspace(dataset, Array.fill(dataset.head.dimensions)((Float.NaN, Float.NaN)))
+    val q = mutable.Queue.apply(subspace)
 
-    while(q.length < numberOfPartitions) {
+    while (q.length < numberOfPartitions) {
       val currentPartition = q.dequeue()
-      val randomDimension = rng.nextInt(currentPartition.head.vectorRep.length)
-
-      val median = currentPartition.map(_.vectorRep(randomDimension)).sorted.apply(currentPartition.length / 2) // Choosing the floor here, as per k-d tree
-      val (a, b) = currentPartition.partition(_.vectorRep(randomDimension) <= median)
-      if (a.nonEmpty) q.enqueue(a)
-      if (b.nonEmpty) q.enqueue(b)
+      val randomDimension = rng.nextInt(currentPartition.points.head.dimensions)
+      val (a, b) = currentPartition.split(randomDimension)
+      if (a.points.nonEmpty) q.enqueue(a) // TODO: Might be too expensive with little gain
+      if (b.points.nonEmpty) q.enqueue(b)
     }
 
-    // Compute bounding boxes for each partition by finding min and max in each dimension
-    q.toArray.map(partition => {
-      val coords = partition.map(_.vectorRep).transpose // TODO: How expensive is this?
-      (coords.map(_.min), coords.map(_.max))
-    })
+    q.toArray
   }
 }

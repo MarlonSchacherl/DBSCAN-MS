@@ -4,10 +4,10 @@ import model.DataPoint
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
-import algorithm.PivotSelection.{HF, findFarthestPoint}
+import algorithm.HFI.{HF, findFarthestPoint}
 import utils.Distance.euclidean
 
-class PivotSelectionTest() extends AnyFunSuite {
+class HFITest() extends AnyFunSuite {
   // Test findFarthestPoint
   test("Test findFarthestPoint") {
     val seed = 42
@@ -23,7 +23,7 @@ class PivotSelectionTest() extends AnyFunSuite {
     }
   }
 
-
+  // Test HF
   private def recalcErrors(pivots: Array[DataPoint]): Array[Float] = {
     val edge = euclidean(pivots(0).data, pivots(1).data)
     pivots.zipWithIndex.drop(2).map { case (a: DataPoint, i: Int) =>

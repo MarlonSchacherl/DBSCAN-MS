@@ -14,4 +14,9 @@ case class DataPoint(data: Array[Float], id: Long, var label: Int = LABEL.UNDEFI
     distanceFunction(this.data, other.data)
   }
 
+  /**
+   * @return The number of dimensions of vectorRep.
+   */
+  def dimensions: Int = vectorRep.length
+
 }

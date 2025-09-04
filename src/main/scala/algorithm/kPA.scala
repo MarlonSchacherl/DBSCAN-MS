@@ -1,11 +1,11 @@
 package algorithm
 
 import breeze.linalg.DenseVector
-import model.DataPoint
+import model.{DataPoint, Subspace}
 import utils.MapPointToVectorSpace
 
 object kPA {
-  def apply(dataset: Array[DataPoint], pivots: Array[DataPoint], subspaces: Array[(Array[Float], Array[Float])]): Unit = {
+  def apply(dataset: Array[DataPoint], pivots: Array[DataPoint], subspaces: Array[Subspace]): Unit = {
     dataset.foreach {point => {
       if (point.vectorRep == null) point.vectorRep = MapPointToVectorSpace(point, pivots)
     }}
@@ -37,7 +37,7 @@ object kPA {
 
   def computeOuterMargin(subspace: (Array[Float], Array[Float]),
                          outerSubspace: (Array[Float], Array[Float])):
-                        ((Array[Float], Array[Float]), (Array[Float], Array[Float])) = {
+                        Unit = {
 
     val (minCoords, maxCoords) = subspace
     val (outerMin, outerMax) = outerSubspace

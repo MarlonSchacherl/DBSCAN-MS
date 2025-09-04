@@ -1,70 +1,13 @@
 package algorithm
 
-import model.{DataPoint, DataPointVector}
+import model.DataPoint
 import utils.Distance.euclidean
 import utils.MapPointToVectorSpace
 
 import scala.util.Random
 
 
-case object PivotSelection {
-  // Hull Foci Algorithm to find pivot candidates
-  private[algorithm] def HF(dataset: Array[DataPoint],
-                            numberOfPivotCandidates: Int,
-                            distanceFunction: (Array[Float], Array[Float]) => Float,
-                            seed: Int): Array[DataPoint] = {
-
-    val rng = new Random(seed)
-    val pivotCandidates = new Array[DataPoint](numberOfPivotCandidates)
-    val startingPoint = dataset(rng.nextInt(dataset.length))
-
-    pivotCandidates(0) = findFarthestPoint(dataset, startingPoint, distanceFunction)
-    pivotCandidates(1) = findFarthestPoint(dataset, pivotCandidates(0), distanceFunction)
-
-    val edge = pivotCandidates(0).distance(pivotCandidates(1), distanceFunction)
-
-    // TODO: This is inefficient because we're computing distances to pivot candidates multiple times.
-    for (i <- 2 until numberOfPivotCandidates) {
-      var minimalError = Float.MaxValue
-      var bestCandidate: DataPoint = null
-
-      for (point <- dataset if !pivotCandidates.contains(point)) {
-        var error = 0.0f
-        for (pivot <- pivotCandidates.take(i)) {
-          error += Math.abs(edge - point.distance(pivot, distanceFunction))
-        }
-
-        if (error < minimalError) {
-          minimalError = error
-          bestCandidate = point
-        }
-      }
-
-      pivotCandidates(i) = bestCandidate
-    }
-
-    pivotCandidates
-  }
-
-  private[algorithm] def findFarthestPoint(dataset: Array[DataPoint],
-                                           referencePoint: DataPoint,
-                                           distanceFunction: (Array[Float], Array[Float]) => Float): DataPoint = {
-
-    var maxDistance = Float.MinValue
-    var farthestPoint: DataPoint = null
-
-    for (point <- dataset if point != referencePoint) {
-        val distance = referencePoint.distance(point, distanceFunction)
-        if (distance > maxDistance) {
-          maxDistance = distance
-          farthestPoint = point
-      }
-    }
-
-    require(farthestPoint != null, "No valid farthest point found")
-    farthestPoint
-  }
-
+case object HFI {
   /**
    * Selects pivots using the Hull Foci Algorithm (HFI).
    *
@@ -73,16 +16,16 @@ case object PivotSelection {
    * @param distanceFunction The distance function to use for distance calculations.
    * @param seed Random seed for reproducibility.
    */
-  def HFI(dataset: Array[DataPoint],
-          numberOfPivots: Int = 40,
-          distanceFunction: (Array[Float], Array[Float]) => Float = euclidean,
-          seed: Int = Random.nextInt()): Array[DataPoint] = {
+  def apply(dataset: Array[DataPoint],
+            numberOfPivots: Int = 40,
+            distanceFunction: (Array[Float], Array[Float]) => Float = euclidean,
+            seed: Int = Random.nextInt()): Array[DataPoint] = {
     require(dataset.nonEmpty, "Dataset must not be empty")
     require(numberOfPivots >= 2, "Number of pivots must be at least 2")
     require(numberOfPivots <= dataset.length, "Number of pivots must not exceed dataset size")
 
     val candidates = HF(dataset, numberOfPivots, distanceFunction, seed)
-    val objectPairs = null // TODO: Choose object pairs
+    val objectPairs = samplePairs(dataset, numberOfPivots * 10, seed) // TODO: Choose object pairs (Number???)
     var pivots = List[DataPoint]()
 
     for (_ <- 0 until numberOfPivots) {
@@ -152,5 +95,27 @@ case object PivotSelection {
     maxDiff
   }
 
+  /**
+   * Samples unique pairs of data points from the dataset.
+   *
+   * @param dataset The dataset from which to sample pairs.
+   * @param sampleSize The number of unique pairs to sample.
+   * @param seed Random seed for reproducibility.
+   * @return An array of unique pairs of data points.
+   */
+  def samplePairs(dataset: Array[DataPoint], sampleSize: Int, seed: Int): Array[(DataPoint, DataPoint)] = {
+    val rng = new Random(seed)
+    var pairs = Set[(DataPoint, DataPoint)]()
+
+    while (pairs.size < sampleSize) {
+      val a = dataset(rng.nextInt(dataset.length))
+      val b = dataset(rng.nextInt(dataset.length))
+      if (a != b) {
+        val pair = if (a.id < b.id) (a, b) else (b, a)
+        pairs += pair
+      }
+    }
+    pairs.toArray
+  }
 
 }
