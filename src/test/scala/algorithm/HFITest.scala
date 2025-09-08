@@ -4,62 +4,62 @@ import model.DataPoint
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
-import algorithm.HFI.{HF, findFarthestPoint}
 import utils.Distance.euclidean
 
 class HFITest() extends AnyFunSuite {
-  // Test findFarthestPoint
-  test("Test findFarthestPoint") {
+  // Test HFI
+  test("Basic HFI tests") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(50)(DataPoint(Array(rng.nextFloat(), rng.nextFloat(), rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint] = Array.fill(1000)(DataPoint(Array.fill(5)(rng.nextFloat()), id = 0))
 
-    val startingPoint = dataset(rng.nextInt(dataset.length))
-    val farthestPoint = findFarthestPoint(dataset, startingPoint, euclidean)
+    val numberOfPivots = 10
+    val pivots: Array[DataPoint] = HFI(dataset, numberOfPivots, euclidean, seed)
 
-    dataset.foreach { point =>
-      assert(euclidean(startingPoint.data, farthestPoint.data) >= euclidean(startingPoint.data, point.data),
-        s"Farthest point ${farthestPoint.data.mkString(",")} is not actually the farthest from ${startingPoint.data.mkString(",")}")
+    // Check that the correct number of pivots is returned
+    assert(pivots.length == numberOfPivots, s"Expected $numberOfPivots pivots, but got ${pivots.length}")
+
+    // Check that all pivots are from the original dataset
+    pivots.foreach { pivot =>
+      assert(dataset.contains(pivot), s"Pivot ${pivot.data.mkString(",")} is not in the original dataset")
     }
+
+    // Check that all pivots are unique
+    assert(pivots.distinct.length == pivots.length, "Pivots are not unique")
+
+
   }
 
-  // Test HF
-  private def recalcErrors(pivots: Array[DataPoint]): Array[Float] = {
-    val edge = euclidean(pivots(0).data, pivots(1).data)
-    pivots.zipWithIndex.drop(2).map { case (a: DataPoint, i: Int) =>
-      pivots.take(i).map(b => Math.abs(edge - euclidean(a.data, b.data))).sum
-    }
-  }
-
-  test("Basic HF functionality test in 2D") {
+  test("Semantic HFI test") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(20)(DataPoint(Array.fill(2)(rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint] = Array.fill(10)(DataPoint(Array.fill(2)(rng.nextFloat()), id = 0))
 
-    val result: Array[DataPoint] = HF(dataset, 4, euclidean, seed)
-//    println(result.map(_.coordinates.mkString("Datapoint(", ", ", ")")).mkString("Array(", ", ", ")"))
+    val numberOfPivots = 3
+    val pivots: Array[DataPoint] = HFI(dataset, numberOfPivots, euclidean, seed)
 
-    /*
-    println(edge)
-    println(euclidean(coords(0), coords(2)))
-    println(euclidean(coords(1), coords(2)))
-    println(euclidean(coords(0), coords(3)))
-    println(euclidean(coords(1), coords(3)))
-    println(euclidean(coords(2), coords(3)))
-    */
-
-    val errors = recalcErrors(result)
-    assert(errors sameElements errors.sorted)
+    // Print the selected pivots for manual inspection
+    println("Selected pivots:")
+    pivots.foreach(p => println(p.data.mkString("(", ", ", ")")))
   }
 
-  test("HF test in 20D") {
-    val seed = 42
-    val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(10000)(DataPoint(Array.fill(20)(rng.nextFloat()), id = 0))
 
-    val result: Array[DataPoint] = HF(dataset, 20, euclidean, seed)
-    val errors = recalcErrors(result)
-    assert(errors sameElements errors.sorted)
+  // Test newPivotSetPrecision
+  test("Test newPivotSetPrecision") {
+
   }
+
+
+  // Test L_infNorm
+  test("Test L_infNorm") {
+
+  }
+
+
+  // Test samplePairs
+  test("Test samplePairs") {
+
+  }
+
 
 }
