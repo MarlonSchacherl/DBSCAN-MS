@@ -1,5 +1,11 @@
 package model
 
+/**
+ * Represents a subspace defined by a set of data points and their bounding box coordinates.
+ *
+ * @param points   The data points contained within the subspace.
+ * @param bbCoords The bounding box coordinates for each dimension, represented as tuples of (min, max).
+ */
 class Subspace(val points: Array[DataPoint], val bbCoords: Array[(Float, Float)]) {
 
   /**

@@ -6,33 +6,32 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.util.Random
 
 class kSDATest extends AnyFunSuite {
-
-  /*
+  val seed = 42
   test("kSDA.divideSpace returns correct number of partitions") {
     val dataset = (1 to 1000).map { _ =>
       DataPoint(Array(Random.nextFloat(), Random.nextFloat()), 0)
     }.toArray
 
-    val partitions = kSDA.divideSpace(dataset, null, 8)
-    assert(partitions.length == 8)
+    val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 10, seed = seed), numberOfPartitions = 10)
+    assert(partitions.length == 10)
   }
 
   test("Each partition bounding box contains only valid coordinates") {
-    val dataset = (1 to 500).map { _ =>
-      DataPoint(Array(Random.between(-100f, 100f), Random.between(-50f, 50f)), 0)
-    }.toArray
+    val dataset = (1 to 300).map { _ =>
+        DataPoint(Array(Random.nextFloat(), Random.nextFloat()), 0)
+      }.toArray
 
-    val partitions = kSDA.divideSpace(dataset, null, 5)
+      val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 5, seed = seed), numberOfPartitions = 5)
 
-    for ((minCoords, maxCoords) <- partitions) {
-      assert(minCoords.length == 2)
-      assert(maxCoords.length == 2)
-      for (i <- 0 until 2) {
-        assert(minCoords(i) <= maxCoords(i), s"min > max in dimension $i")
+      for (partition <- partitions) {
+        assert(partition.bbCoords.length == dataset.head.dimensions)
+        for (i <- partition.bbCoords) {
+          if (i._1.isFinite && i._2.isFinite) assert(i._1.isFinite && i._2.isFinite && i._1 <= i._2)
+        }
       }
-    }
   }
 
+  /*
   test("Partitioning with 1 partition returns full bounding box") {
     val dataset = Array(
       DataPoint(Array(0f, 0f), 0),
@@ -40,7 +39,7 @@ class kSDATest extends AnyFunSuite {
       DataPoint(Array(2f, 3f), 2)
     )
 
-    val partitions = kSDA.divideSpace(dataset, null, 1)
+    val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 1, seed = seed), numberOfPartitions = 1)
     assert(partitions.length == 1)
     val (minCoords, maxCoords) = partitions(0)
     assert(minCoords.sameElements(Array(0f, 0f)))
@@ -49,7 +48,7 @@ class kSDATest extends AnyFunSuite {
 
   test("Partitioning single data point returns one partition with min == max") {
     val dp = DataPoint(Array(1.5f, -2.3f), 0)
-    val partitions = kSDA.divideSpace(Array(dp), null, 1)
+    val partitions = kSDA(Array(dp), null, 1)
     val (minCoords, maxCoords) = partitions(0)
     assert(minCoords.sameElements(dp.data))
     assert(maxCoords.sameElements(dp.data))
@@ -63,7 +62,7 @@ class kSDATest extends AnyFunSuite {
     val globalMin = dataset.map(_.data).transpose.map(_.min)
     val globalMax = dataset.map(_.data).transpose.map(_.max)
 
-    val partitions = kSDA.divideSpace(dataset, null, 10)
+    val partitions = kSDA(dataset, null, 10)
 
     for ((minCoords, maxCoords) <- partitions) {
       for (i <- minCoords.indices) {
@@ -82,8 +81,8 @@ class kSDATest extends AnyFunSuite {
       DataPoint(Array(rand.nextFloat(), rand.nextFloat()), 0)
     }.toArray
 
-    val partitions1 = kSDA.divideSpace(dataset, null, 4, 42)
-    val partitions2 = kSDA.divideSpace(dataset, null, 4, 42)
+    val partitions1 = kSDA(dataset, null, 4, 42)
+    val partitions2 = kSDA(dataset, null, 4, 42)
 
     assert(partitions1.length == partitions2.length)
     assert(partitions1.map { case (a, b) => (a.toSeq, b.toSeq) }.toSeq ==
@@ -91,5 +90,4 @@ class kSDATest extends AnyFunSuite {
   }
 
    */
-
 }

@@ -17,7 +17,7 @@ object kSDA {
    * @param seed Optional seed for reproducibility. Defaults to a random seed.
    * @return An array of coordinates as tuples, in the form of (min, max).
    */
-  def divideSpace(dataset: Array[DataPoint], pivots: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt()): Array[Subspace] = {
+  def apply(dataset: Array[DataPoint], pivots: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt()): Array[Subspace] = {
     require(dataset.nonEmpty, "Dataset must not be empty")
     require(numberOfPartitions > 0, "Number of partitions must be greater than zero")
 
