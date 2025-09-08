@@ -77,22 +77,13 @@ case object HFI {
    * Computes the L-infinity norm (Chebyshev distance) between two data points.
    *
    * (This is D() in "Efficient Metric Indexing for Similarity Search")
-   * @param a First data point.
-   * @param b Second data point.
+   * @param a First coordinates.
+   * @param b Second coordinates.
    * @return The L-infinity norm between the two data points.
    */
-  private def L_infNorm(a: List[Float], b: List[Float]): Float = {
+  def L_infNorm(a: List[Float], b: List[Float]): Float = {
     require(a.length == b.length, "Data points must have the same dimension")
-//    a.data.zip(b.data).map { case (x, y) => Math.abs(x - y) }.max
-
-    var maxDiff = Float.MinValue
-    for (i <- a.indices) {
-      val diff = Math.abs(a(i) - b(i))
-      if (diff > maxDiff) {
-        maxDiff = diff
-      }
-    }
-    maxDiff
+    a.zip(b).map { case (x, y) => Math.abs(x - y) }.max
   }
 
   /**
@@ -104,6 +95,7 @@ case object HFI {
    * @return An array of unique pairs of data points.
    */
   def samplePairs(dataset: Array[DataPoint], sampleSize: Int, seed: Int): Array[(DataPoint, DataPoint)] = {
+    require(dataset.length > sampleSize, "Dataset must be larger than sample size") // This is not strictly necessary but guards against weird cases
     val rng = new Random(seed)
     var pairs = Set[(DataPoint, DataPoint)]()
 
