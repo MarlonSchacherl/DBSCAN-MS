@@ -45,6 +45,10 @@ build/
 
 ### Scala ###
 .bsp/
+/.idea/
+
+### Custom ###
 /src/main/scala/imp/
 /src/main/scala/algorithm/testing.sc
-/.idea/
+/src/main/scala/utils/testfile.scala
+/data/
