@@ -6,7 +6,7 @@ package model
  * @param points   The data points contained within the subspace.
  * @param bbCoords The bounding box coordinates for each dimension, represented as tuples of (min, max).
  */
-class Subspace(val points: Array[DataPoint], val bbCoords: Array[(Float, Float)], val epsilon: Float) {
+case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], epsilon: Float) {
   // TODO: Remove default epsilon
   val outer: Array[(Float, Float)] = this.outerSubspace(epsilon)
   val inner: Array[(Float, Float)] = this.innerSubspace(epsilon)
@@ -47,5 +47,6 @@ class Subspace(val points: Array[DataPoint], val bbCoords: Array[(Float, Float)]
   def innerSubspace(epsilon: Float): Array[(Float, Float)] = {
     bbCoords.map { case (min, max) => (min + epsilon, max - epsilon) }
   }
+
 
 }

@@ -12,7 +12,7 @@ class kSDATest extends AnyFunSuite {
       DataPoint(Array(Random.nextFloat(), Random.nextFloat()), 0)
     }.toArray
 
-    val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 10, seed = seed), numberOfPartitions = 10)
+    val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 10, seed = seed), numberOfPartitions = 10, epsilon = 0.02f)
     assert(partitions.length == 10)
   }
 
@@ -21,7 +21,7 @@ class kSDATest extends AnyFunSuite {
         DataPoint(Array(Random.nextFloat(), Random.nextFloat()), 0)
       }.toArray
 
-      val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 5, seed = seed), numberOfPartitions = 5)
+      val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 5, seed = seed), numberOfPartitions = 5, epsilon = 0.02f)
 
       for (partition <- partitions) {
         assert(partition.bbCoords.length == dataset.head.dimensions)
