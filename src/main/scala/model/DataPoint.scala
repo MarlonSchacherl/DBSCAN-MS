@@ -1,14 +1,20 @@
 package model
 
+import java.util
+
 
 case class DataPoint(data: Array[Float], id: Long, var label: Int = LABEL.UNDEFINED,
                      var visited: Boolean = false, var vectorRep: Array[Float] = null, var mask: Int = -1) {
   override def equals(obj: Any): Boolean = obj match {
-    case that: DataPoint => this.data sameElements that.data
+    case that: DataPoint =>
+      this.mask == that.mask && this.label == that.label && (this.data sameElements that.data)
     case _ => false
   }
 
-  override def hashCode(): Int = data.hashCode()
+  override def hashCode(): Int = {
+    val prime = 31
+    prime * (prime * (prime + util.Arrays.hashCode(data)) + mask) + label
+  }
 
   override def toString: String = s"DataPoint(${data.mkString(", ")}, id=$id, label=$label, visited=$visited, " +
     s"vectorRep=${if (vectorRep != null) vectorRep.mkString(", ")}, mask=$mask)"
