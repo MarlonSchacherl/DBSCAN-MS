@@ -1,13 +1,12 @@
 package algorithm
 
 import model.DataPoint
-import org.apache.spark.{HashPartitioner, SparkContext}
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.{HashPartitioner, SparkContext}
 import utils.Distance.euclidean
 
-object DBSCAN_MS {
+case object DBSCAN_MS {
   def run(filepath: String,
           numberOfPartitions: Int,
           seed: Int = 42,
