@@ -9,15 +9,15 @@ import scala.collection.mutable.ArrayBuffer
 case object SWNQA {
   /**
    * Computes the neighbourhoods of a given set of data points.
-   * @param objects The data points sorted along dimension to compute the neighbourhoods for.
+   * @param points The data points sorted along dimension to compute the neighbourhoods for.
    * @param dimension The dimension along which to compute the neighbourhoods.
    * @param epsilon The search radius.
-   * @return The neighbourhoods (inner arrays) of each data point (outer array) ordered the same way as the input.
+   * @return The neighbourhoods (inner arrays) of each data point (outer array) as indices
+   *         of the respective data points in the input array (Int), ordered the same way as the input.
    * @note Data points must be sorted along dimension before passing them to this function!
    */
-  def apply(objects: Array[DataPoint], dimension: Int, epsilon: Float): Array[Array[DataPoint]] = {
-    val points = objects
-    val neighbourhoods: Array[ArrayBuffer[Int]] = new Array[ArrayBuffer[Int]](objects.length)(new ArrayBuffer[Int])
+  def apply(points: Array[DataPoint], dimension: Int, epsilon: Float): Array[Array[Int]] = {
+    val neighbourhoods: Array[ArrayBuffer[Int]] = Array.fill(points.length)(ArrayBuffer[Int]())
 
     for (l <- points.indices) {
       val lPoint = points(l)
