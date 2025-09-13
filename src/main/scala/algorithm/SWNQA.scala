@@ -3,34 +3,41 @@ package algorithm
 import model.DataPoint
 import utils.Distance.euclidean
 
-import scala.util.Random
+import scala.collection.mutable.ArrayBuffer
 
 
 case object SWNQA {
-  def apply(objects: Array[DataPoint], epsilon: Float, seed: Int = 42): Array[(DataPoint, List[DataPoint])] = {
-    val rng = new Random(seed)
-    val dimension = rng.nextInt(objects.head.dimensions)
-    val points = objects.sortBy(point => point.vectorRep(dimension)).map((_, List[DataPoint]()))
+  /**
+   * Computes the neighbourhoods of a given set of data points.
+   * @param objects The data points sorted along dimension to compute the neighbourhoods for.
+   * @param dimension The dimension along which to compute the neighbourhoods.
+   * @param epsilon The search radius.
+   * @return The neighbourhoods (inner arrays) of each data point (outer array) ordered the same way as the input.
+   * @note Data points must be sorted along dimension before passing them to this function!
+   */
+  def apply(objects: Array[DataPoint], dimension: Int, epsilon: Float): Array[Array[DataPoint]] = {
+    val points = objects
+    val neighbourhoods: Array[ArrayBuffer[Int]] = new Array[ArrayBuffer[Int]](objects.length)(new ArrayBuffer[Int])
 
     for (l <- points.indices) {
-      val lPoint = points(l)._1
+      val lPoint = points(l)
       val searchRegion = lPoint.vectorRep.map(x => (x - epsilon, x + epsilon))
 
       var u = l
-      var uPoint = points(u)._1
+      var uPoint = points(u)
       while (u < points.length && uPoint.vectorRep(dimension) - lPoint.vectorRep(dimension) <= epsilon) {
         if (inSearchRegion(searchRegion, uPoint) && lPoint.distance(uPoint, euclidean) <= epsilon) {
-          points(l) = (points(l)._1, points(u) +: points(l)._2)
-          points(u) = (points(u)._1, points(l) +: points(u)._2)
+          neighbourhoods(l) += u
+          neighbourhoods(u) += l
         }
 
         u = u + 1
         if (u < points.length) {
-          uPoint = points(u)._1
+          uPoint = points(u)
         }
       }
     }
-    points
+    neighbourhoods.map(_.toArray)
   }
 
   def inSearchRegion(searchRegion: Array[(Float, Float)], point: DataPoint): Boolean = {

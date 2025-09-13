@@ -36,8 +36,11 @@ case object DBSCAN_MS {
 
       val clusteredRDD = partitionedRDD.mapPartitions(iter => {
         val partition = iter.map(_._2).toArray
+        val rng = new scala.util.Random(seed)
+        val dimension = rng.nextInt(partition.head.dimensions)
+        val sortedPartition = partition.sortBy(point => point.vectorRep(dimension))
 
-        val pointsAndNeighbourhoods = SWNQA(partition, epsilon, seed)
+        val neighbourhoods = SWNQA(sortedPartition, dimension, epsilon)
       })
 
 
