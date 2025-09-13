@@ -4,7 +4,6 @@ import model.DataPoint
 import org.apache.spark.rdd.RDD
 
 import scala.util.Random
-import model.DataPointWithN
 import utils.Distance.euclidean
 
 
