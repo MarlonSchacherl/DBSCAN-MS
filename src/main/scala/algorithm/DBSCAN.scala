@@ -5,6 +5,13 @@ import model.{DataPoint, LABEL}
 import scala.collection.mutable
 
 case object DBSCAN {
+  /**
+   * Performs local DBSCAN clustering on the given dataset.
+   * @param points The dataset to cluster.
+   * @param neighbourhoods The neighbourhoods of each data point as per SWNQA.
+   * @param minPts The minimum number of neighbours for a core point.
+   * @return The clustered dataset.
+   */
   def apply(points: Array[DataPoint], neighbourhoods: Array[Array[Int]], minPts: Int): Array[DataPoint] = {
     var currentCluster = 0
     for (i <- points.indices) {
