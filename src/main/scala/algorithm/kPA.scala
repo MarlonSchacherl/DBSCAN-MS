@@ -23,7 +23,9 @@ object kPA {
           case (true, false) => MASK.MARGIN_INNER
           case (false, _)    => MASK.MARGIN_OUTER
         }
-        returnList = returnList :+ (i, newPoint.withMask(mask))
+        val pointWithMask = newPoint.withMask(mask)
+        pointWithMask.partition = i
+        returnList = returnList :+ (i, pointWithMask)
       }
     }
 
