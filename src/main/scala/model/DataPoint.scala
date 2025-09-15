@@ -9,20 +9,21 @@ case class DataPoint(data: Array[Float],
                      var visited: Boolean = false,
                      var vectorRep: Array[Float] = null,
                      var mask: Int = -1,
-                     var cluster: Int = -1) {
+                     var localCluster: Int = -1,
+                     var partition: Int = -1) {
   override def equals(obj: Any): Boolean = obj match {
-    case that: DataPoint =>
-      this.mask == that.mask && this.label == that.label && (this.data sameElements that.data)
+    case that: DataPoint => this.id == that.id && this.partition == that.partition
     case _ => false
   }
 
   override def hashCode(): Int = {
     val prime = 31
-    prime * (prime * (prime + util.Arrays.hashCode(data)) + mask) + label
+    prime * (prime * (prime + util.Arrays.hashCode(data)) + partition) + id.toInt
   }
 
   override def toString: String = s"DataPoint(${data.mkString(", ")}, id=$id, label=$label, visited=$visited, " +
-    s"vectorRep=${if (vectorRep != null) vectorRep.mkString(", ")}, mask=$mask, cluster=$cluster)"
+                                  s"vectorRep=${if (vectorRep != null) vectorRep.mkString(", ")}, " +
+                                  s"mask=$mask, cluster=$localCluster, partition=$partition)"
 
   def distance(other: DataPoint, distanceFunction: (Array[Float], Array[Float]) => Float): Float = {
     distanceFunction(this.data, other.data)
