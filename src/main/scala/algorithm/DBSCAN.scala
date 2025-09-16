@@ -23,7 +23,7 @@ case object DBSCAN {
         val neighbourhood = neighbourhoods(i)
         if (neighbourhood.length >= minPts) {
           currentCluster += 1
-          point.cluster = currentCluster
+          point.localCluster = currentCluster
           point.label = LABEL.CORE
 
           val queue = mutable.Queue[Int]().enqueueAll(neighbourhood)
@@ -32,7 +32,7 @@ case object DBSCAN {
             val currentPoint = points(currentIndex)
             if (!currentPoint.visited) {
               currentPoint.visited = true
-              currentPoint.cluster = currentCluster
+              currentPoint.localCluster = currentCluster
 
               val currentNeighbourhood = neighbourhoods(currentIndex)
               if (currentNeighbourhood.length >= minPts) {
@@ -42,7 +42,7 @@ case object DBSCAN {
                 currentPoint.label = LABEL.BORDER
               }
             } else {
-              currentPoint.cluster = currentCluster
+              currentPoint.localCluster = currentCluster
               if (currentPoint.label == LABEL.NOISE) {
                 currentPoint.label = LABEL.BORDER
               }

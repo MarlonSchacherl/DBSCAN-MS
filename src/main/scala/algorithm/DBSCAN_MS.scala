@@ -52,7 +52,8 @@ case object DBSCAN_MS {
         (point.mask == MASK.MARGIN_OUTER || point.mask == MASK.MARGIN_INNER) &&
           (point.label == LABEL.CORE || point.label == LABEL.BORDER)).collect()
 
-      CCGMA(mergingCandidates)
+
+
 
 
       clusteredRDD.collect().foreach(println)
