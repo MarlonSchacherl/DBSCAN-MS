@@ -13,12 +13,14 @@ case object DBSCAN_MS {
           numberOfPivots: Int,
           numberOfPartitions: Int,
           samplingDensity: Double = 0.001,
-          seed: Int = 42): Unit = {
+          seed: Int = 42,
+          dataHasHeader: Boolean = false,
+          dataHasRightLabel: Boolean = false): Unit = {
     val spark = SparkSession.builder().appName("Example").master("local[*]").getOrCreate()
     val sc = spark.sparkContext
 
     try {
-      val rdd = readData(sc, filepath)
+      val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel)
 
       val sampledRDD = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed)
       val sampledData = sampledRDD.collect()
@@ -75,7 +77,7 @@ case object DBSCAN_MS {
     }
   }
 
-  private def readData(sc: SparkContext, path: String, hasHeader: Boolean = false, hasRightLabel: Boolean = false): RDD[DataPoint] = {
+  private def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
     val rdd = sc.textFile(path).zipWithIndex()
 
     val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
