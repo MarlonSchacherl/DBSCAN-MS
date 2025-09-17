@@ -75,12 +75,20 @@ case object DBSCAN_MS {
     }
   }
 
-  private def readData(sc: SparkContext, path: String): RDD[DataPoint] = {
-    sc.textFile(path).zipWithIndex().map {case (line, index) => makeDataPoint(line, index)}
+  private def readData(sc: SparkContext, path: String, hasHeader: Boolean = false, hasRightLabel: Boolean = false): RDD[DataPoint] = {
+    val rdd = sc.textFile(path).zipWithIndex()
+
+    val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
+
+    val numLines = rdd1.count()
+    val rdd2 = if (hasRightLabel) rdd1.filter(_._2 < numLines - 1) else rdd1
+
+    rdd2.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}
   }
 
-  private def makeDataPoint(line: String, index: Long): DataPoint = {
+  private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean): DataPoint = {
     val data = line.split(",").map(_.toFloat)
-    DataPoint(data, id = index)
+    val cleanedData = if (hasRightLabel) data.dropRight(1) else data
+    DataPoint(cleanedData, id = index)
   }
 }
