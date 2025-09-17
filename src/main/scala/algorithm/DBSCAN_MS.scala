@@ -58,7 +58,7 @@ case object DBSCAN_MS {
       val globalClusterMappings = CCGMA(mergingCandidates)
       val bcGlobalClusterMappings = sc.broadcast(globalClusterMappings)
 
-      val mergedRDD = clusteredRDD.mapPartitions(iter => {
+      val mergedRDD = clusteredRDD.mapPartitions(iter => { //TODO: this can be handled by a .map()
         val partition = iter.toArray
         val globalClusterMappings = bcGlobalClusterMappings.value
 
@@ -80,13 +80,8 @@ case object DBSCAN_MS {
 
   private def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
     val rdd = sc.textFile(path).zipWithIndex()
-
     val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
-
-    val numLines = rdd1.count()
-    val rdd2 = if (hasRightLabel) rdd1.filter(_._2 < numLines - 1) else rdd1
-
-    rdd2.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}
+    rdd1.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}
   }
 
   private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean): DataPoint = {
