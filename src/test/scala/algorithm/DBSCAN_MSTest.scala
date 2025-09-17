@@ -12,37 +12,44 @@ class DBSCAN_MSTest extends AnyFunSuite{
   }
 
   test("2D Clustering Test with synthetic data from Sci-Kit Learn") {
-    val result = DBSCAN_MS.run("data/dbscan_dataset_2400x2D.csv",
+    val result = DBSCAN_MS.run("data/dbscan_dataset_100x2D.csv",
       epsilon = 2f,
-      minPts = 3,
+      minPts = 5,
       numberOfPivots = 9,
       numberOfPartitions = 10,
-      samplingDensity = 0.3f,
+      samplingDensity = 0.5f,
       dataHasHeader = true,
       dataHasRightLabel = true)
 
-    val reducedResult = result.map(p => (p.id, p.globalCluster)).distinct
-    val numberOfPoints = result.map(_.id).distinct
-    val index = reducedResult.map(_._2).zipWithIndex.toMap
-    val remappedResult = result.map(p => {
-      val newLabel = index.get(p.globalCluster)
+    val distinctResult = result.map(p => (p.id, p.globalCluster)).distinct
+    val distinctClusters = distinctResult.filterNot(_._2 == -1)
+    val newLabelsMapping = distinctClusters.map(_._2).distinct.zipWithIndex.toMap
+    val remappedClusters = distinctClusters.map(p => {
+      val newLabel = newLabelsMapping.get(p._2)
       newLabel match {
         case Some(newLabel) => newLabel
         case _ => throw new Exception("WTF")
       }
-    }).sorted
+    })
+    val finalResult = remappedClusters.concat(distinctResult.filter(_._2 == -1).map(_ => -1)).sorted
 
-    val checkingLabels = getRightmostColumn("data/dbscan_dataset_2400x2D.csv").toArray.map(_.toFloat.toInt).sorted
+    println(s"Clusters: ${distinctClusters.map(_._2).distinct.zipWithIndex.mkString("Array(", ", ", ")")}")
+    println(s"Reduced Length: ${distinctResult.length}")
+    println(s"Remapped Length: ${remappedClusters.length}")
+    //    println(s"Number of Points: ${numberOfPoints.length}")
+    //    val numberOfPoints = result.map(_.id).distinct
 
-    println(numberOfPoints.length)
-    println(reducedResult.length)
-    println(checkingLabels.length)
+    val checkingLabels = getRightmostColumn("data/dbscan_dataset_100x2D.csv").toArray.map(_.toFloat.toInt).sorted
+    println(s"Normalized Mutual Information Score: ${normalizedMutualInfoScore(labelsTrue = checkingLabels, labelsPred = finalResult)}")
 
-    val numberOfPointsSorted = numberOfPoints.sorted
-    println(numberOfPointsSorted.mkString("Array(", ", ", ")"))
-
-
-//    println(normalizedMutualInfoScore(labelsTrue = checkingLabels, labelsPred = remappedResult))
+    val y = newLabelsMapping.toArray
+    val x = remappedClusters.foldLeft(0)((acc, label) => {
+      if (label != acc) {
+        acc + 1
+      } else {
+        acc
+      }
+    })
   }
 
 

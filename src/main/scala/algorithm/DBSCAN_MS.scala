@@ -87,7 +87,6 @@ case object DBSCAN_MS {
   private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean): DataPoint = {
     val data = line.split(",").map(_.toFloat)
     val cleanedData = if (hasRightLabel) data.dropRight(1) else data
-    println(s"Make DataPoint: $index") //TODO: Remove
     DataPoint(cleanedData, id = index)
   }
 }
