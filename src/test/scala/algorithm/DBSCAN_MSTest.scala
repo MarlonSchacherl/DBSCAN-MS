@@ -19,7 +19,7 @@ class DBSCAN_MSTest extends AnyFunSuite{
 
   test("2D Clustering Test with synthetic data from Sci-Kit Learn") {
     val result = DBSCAN_MS.run("data/dbscan_dataset_100x2D.csv",
-      epsilon = 1.1f,
+      epsilon = 1.5f,
       minPts = 5,
       numberOfPivots = 9,
       numberOfPartitions = 10,
@@ -54,7 +54,40 @@ class DBSCAN_MSTest extends AnyFunSuite{
     //    WriteResultToCSV(result, "data/dbscan_dataset_100x2D_result.csv")
 
     val checkingLabels = getRightmostColumn("data/dbscan_dataset_100x2D.csv").toArray.map(_.toFloat.toInt).sorted
-        println(s"Normalized Mutual Information Score: ${normalizedMutualInfoScore(labelsTrue = checkingLabels, labelsPred = finalResult)}")
+    println(s"Normalized Mutual Information Score: ${normalizedMutualInfoScore(labelsTrue = checkingLabels, labelsPred = finalResult)}")
+
+  }
+
+  test("Moons 2500 x 2D no Noise") {
+    val result = DBSCAN_MS.run("data/moons_2500x2D.csv",
+      epsilon = 0.1f,
+      minPts = 5,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.2f,
+      dataHasHeader = true,
+      dataHasRightLabel = true)
+
+    val distinctResult = result.map(p => (p.id, p.globalCluster)).distinct
+    val distinctClusters = distinctResult.filterNot(_._2 == -1)
+    val newLabelsMapping = distinctClusters.map(_._2).distinct.zipWithIndex.toMap
+    val remappedClusters = distinctClusters.map(p => {
+      val newLabel = newLabelsMapping.get(p._2)
+      newLabel match {
+        case Some(newLabel) => newLabel
+        case _ => throw new Exception("WTF")
+      }
+    })
+
+    val finalResult = remappedClusters.concat(distinctResult.filter(_._2 == -1).map(_ => -1)).sorted
+    val checkingLabels = getRightmostColumn("data/moons_2500x2D.csv").toArray.map(_.toFloat.toInt).sorted
+    val mInfoScore = normalizedMutualInfoScore(labelsTrue = checkingLabels, labelsPred = finalResult)
+
+    println(s"Cluster Mapping: ${distinctClusters.map(_._2).distinct.zipWithIndex.mkString("Array(", ", ", ")")}")
+    println(s"Normalized Mutual Information Score: $mInfoScore")
+
+    assert(mInfoScore == 1.0f)
+    assert(distinctClusters.map(_._2).distinct.length == 2)
 
   }
 
