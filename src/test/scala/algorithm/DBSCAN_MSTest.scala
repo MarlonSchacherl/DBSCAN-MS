@@ -1,25 +1,23 @@
 package algorithm
 
-import imp.MutualInformation
 import imp.MutualInformation.normalizedMutualInfoScore
 import org.scalatest.funsuite.AnyFunSuite
-import utils.{GetResultLabels, Testing, WriteResultToCSV}
+import utils.{GetResultLabels, Testing}
 
-import scala.io.Source
-import scala.util.Using
 
 class DBSCAN_MSTest extends AnyFunSuite{
-  test("Test") {
-    DBSCAN_MS.run("data/synth_data_points10000x3D.csv",
-      epsilon = 0.03f,
-      minPts = 3,
-      numberOfPivots = 9,
-      numberOfPartitions = 10,
-      samplingDensity = 0.2f)
-  }
+//  test("Test") {
+//    DBSCAN_MS.run("data/synth_data_points10000x3D.csv",
+//      epsilon = 0.03f,
+//      minPts = 3,
+//      numberOfPivots = 9,
+//      numberOfPartitions = 10,
+//      samplingDensity = 0.2f)
+//  }
 
-  test("2D Clustering Test with synthetic data from Sci-Kit Learn") {
-    val result = DBSCAN_MS.run("data/dbscan_dataset_100x2D.csv",
+  test("100 x 2D Synthetic") {
+    val filepath = "data/dbscan_dataset_100x2D.csv"
+    val result = DBSCAN_MS.run(filepath,
       epsilon = 1.5f,
       minPts = 5,
       numberOfPivots = 9,
@@ -28,39 +26,16 @@ class DBSCAN_MSTest extends AnyFunSuite{
       dataHasHeader = true,
       dataHasRightLabel = true)
 
-    val distinctResult = result.map(p => (p.id, p.globalCluster)).distinct
-    val distinctClusters = distinctResult.filterNot(_._2 == -1)
-    val newLabelsMapping = distinctClusters.map(_._2).distinct.zipWithIndex.toMap
-    val remappedClusters = distinctClusters.map(p => {
-      val newLabel = newLabelsMapping.get(p._2)
-      newLabel match {
-        case Some(newLabel) => newLabel
-        case _ => throw new Exception("WTF")
-      }
-    })
-    val finalResult = remappedClusters.concat(distinctResult.filter(_._2 == -1).map(_ => -1)).sorted
+    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
+    val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
 
-    println(s"Cluster Mapping: ${distinctClusters.map(_._2).distinct.zipWithIndex.mkString("Array(", ", ", ")")}")
-    println(s"Distinct Results: ${distinctResult.length}")
-    println(s"Amount of Points in Clusters: ${remappedClusters.length}")
-    println(s"Final Result length: ${finalResult.length}")
-
-    //    distinctResult.zipWithIndex.foreach(t => println(s"${t._2}: ID: ${t._1._1}, GCluster: ${t._1._2}"))
-    val duplicates = distinctResult.map(_._1).groupBy(identity).collect({
-      case (id, amount) if amount.length > 1 => id
-    })
-    duplicates.foreach(println)
-    println(s"Duplicate Amount: ${duplicates.size}")
-
-    //    WriteResultToCSV(result, "data/dbscan_dataset_100x2D_result.csv")
-
-//    val checkingLabels = Testing.getRightmostColumn("data/dbscan_dataset_100x2D.csv").toArray.map(_.toFloat.toInt).sorted
-//    println(s"Normalized Mutual Information Score: ${normalizedMutualInfoScore(labelsTrue = checkingLabels, labelsPred = finalResult)}")
-
+    // Note, this dataset is useless and to be used cautiously.
+    assert(normalizedMutualInfoScore(labelsTrue,predLabels) > .9d)
   }
 
   test("Moons 2500 x 2D no Noise") {
-    val result = DBSCAN_MS.run("data/moons_2500x2D.csv",
+    val filepath = "data/moons_2500x2D.csv"
+    val result = DBSCAN_MS.run(filepath,
       epsilon = 0.1f,
       minPts = 5,
       numberOfPivots = 10,
@@ -69,11 +44,84 @@ class DBSCAN_MSTest extends AnyFunSuite{
       dataHasHeader = true,
       dataHasRightLabel = true)
 
-    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString("data/moons_2500x2D.csv", header = true))
+    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
     val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
 
-    assert(normalizedMutualInfoScore(labelsTrue,predLabels) == 1.0D)
+    assert(normalizedMutualInfoScore(labelsTrue,predLabels) == 1.0d)
     assert(predLabels.distinct.length == 2)
+  }
+
+  test("Circles 2500 x 2D no Noise") {
+    val filepath = "data/circles_2500x2D.csv"
+    val result = DBSCAN_MS.run(filepath,
+      epsilon = 0.1f,
+      minPts = 5,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.2f,
+      dataHasHeader = true,
+      dataHasRightLabel = true)
+
+    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
+    val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
+
+    assert(normalizedMutualInfoScore(labelsTrue,predLabels) == 1.0d)
+    assert(predLabels.distinct.length == 2)
+  }
+
+  test("Blobs 1000 x 2D no Noise") {
+    val filepath = "data/blobs_1000x2D.csv"
+    val result = DBSCAN_MS.run(filepath,
+      epsilon = 1.3f,
+      minPts = 5,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.2f,
+      dataHasHeader = true,
+      dataHasRightLabel = true)
+
+    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
+    val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
+
+    assert(normalizedMutualInfoScore(labelsTrue,predLabels) == 1.0d)
+    assert(predLabels.distinct.length == 4)
+  }
+
+  test("Combined Circles & Moons 5000 x 2D no Noise") {
+    val filepath = "data/combined_circles_moons.csv"
+    val result = DBSCAN_MS.run(filepath,
+      epsilon = 0.1f,
+      minPts = 5,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.15f,
+      dataHasHeader = true,
+      dataHasRightLabel = true)
+
+    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
+    val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
+
+    assert(normalizedMutualInfoScore(labelsTrue,predLabels) == 1.0d)
+    assert(predLabels.distinct.length == 4)
+  }
+
+  test("Combined Circles & Moons 5010 x 2D with 10 Noise Points") {
+    val filepath = "data/combined_circles_moons_noise.csv"
+    val result = DBSCAN_MS.run(filepath,
+      epsilon = 0.1f,
+      minPts = 5,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.15f,
+      dataHasHeader = true,
+      dataHasRightLabel = true)
+
+    val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
+    val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
+
+    assert(predLabels.count(_ == -1) == 10)
+    assert(normalizedMutualInfoScore(labelsTrue,predLabels) == 1.0d)
+    assert(predLabels.distinct.length == 5)
   }
 
 

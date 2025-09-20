@@ -22,6 +22,6 @@ case object Testing {
    * @return A tuple containing the features and labels as arrays.
    */
   def splitData(data: Array[Array[String]]): (Array[Array[Float]], Array[Int]) = {
-    data.map(row => (row.init.map(_.toFloat), row.last.toInt)).unzip
+    data.map(row => (row.init.map(_.toFloat), row.last.toFloat.toInt)).unzip
   }
   }
