@@ -24,12 +24,4 @@ case object Testing {
   def splitData(data: Array[Array[String]]): (Array[Array[Float]], Array[Int]) = {
     data.map(row => (row.init.map(_.toFloat), row.last.toInt)).unzip
   }
-
-  def getRightmostColumn(filePath: String): Seq[String] = {
-    Using(Source.fromFile(filePath)) { source =>
-      source.getLines().drop(1).map(_.split(',').last).toSeq
-    }.getOrElse(Seq.empty)
   }
-
-
-}
