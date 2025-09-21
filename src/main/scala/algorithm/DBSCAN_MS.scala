@@ -66,7 +66,6 @@ case object DBSCAN_MS {
     val data: RDD[(Int, DataPoint)] = rdd.flatMap(kPA(_, bcPivots.value, bcSubspaces.value))
 
     require(numberOfPartitions == subspaces.length, "Something has gone very wrong. Number of partitions does not match number of subspaces.")
-    // TODO: Partitioning with HashPartitioner like this should work but check it something is wrong
     val partitionedRDD = data.partitionBy(new HashPartitioner(numberOfPartitions)).map(_._2)
 
     val clusteredRDD: RDD[DataPoint] = partitionedRDD.mapPartitions(iter => {
@@ -90,19 +89,14 @@ case object DBSCAN_MS {
     val globalClusterMappings = CCGMA(mergingCandidates)
     val bcGlobalClusterMappings = sc.broadcast(globalClusterMappings)
 
-    val mergedRDD = clusteredRDD.mapPartitions(iter => { //TODO: this can be handled by a .map()
-      val partition = iter.toArray
-      val globalClusterMappings = bcGlobalClusterMappings.value
-
-      partition.map(point => {
-        globalClusterMappings.get((point.partition, point.localCluster)) match {
-          case Some(cluster) => point.globalCluster = cluster
-          case None => point.globalCluster = if (point.localCluster == -1) -1 else {
-            ((point.partition.toLong + 1L) << 32) | point.localCluster.toLong
-          }
+    val mergedRDD = clusteredRDD.map(point => {
+      bcGlobalClusterMappings.value.get((point.partition, point.localCluster)) match {
+        case Some(cluster) => point.globalCluster = cluster
+        case None => point.globalCluster = if (point.localCluster == -1) -1 else {
+          ((point.partition.toLong + 1L) << 32) | point.localCluster.toLong
         }
-        point
-      }).iterator
+      }
+      point
     })
 
     // TODO: Take a look at the efficiency of this
