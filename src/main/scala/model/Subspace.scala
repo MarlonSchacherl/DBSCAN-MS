@@ -5,9 +5,9 @@ package model
  *
  * @param points   The data points contained within the subspace.
  * @param bbCoords The bounding box coordinates for each dimension, represented as tuples of (min, max).
+ * @param epsilon  The search radius.
  */
 case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], epsilon: Float) {
-  // TODO: Remove default epsilon
   val outer: Array[(Float, Float)] = this.outerSubspace(epsilon)
   val inner: Array[(Float, Float)] = this.innerSubspace(epsilon)
 
@@ -23,7 +23,7 @@ case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], 
     val (leftPoints, rightPoints) = points.partition(_.vectorRep(dimension) <= median)
     val leftBB = bbCoords.updated(dimension, (bbCoords(dimension)._1, median))
     val rightBB = bbCoords.updated(dimension, (median, bbCoords(dimension)._2))
-    (new Subspace(leftPoints, leftBB, epsilon), new Subspace(rightPoints, rightBB, epsilon))
+    (Subspace(leftPoints, leftBB, epsilon), Subspace(rightPoints, rightBB, epsilon))
   }
 
   /**
@@ -33,7 +33,7 @@ case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], 
    * @param epsilon The search radius.
    * @return An array of tuples representing the outer subspace.
    */
-  def outerSubspace(epsilon: Float): Array[(Float, Float)] = {
+  private def outerSubspace(epsilon: Float): Array[(Float, Float)] = {
     bbCoords.map { case (min, max) => (min - epsilon, max + epsilon) }
   }
 
@@ -44,7 +44,7 @@ case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], 
    * @param epsilon The search radius.
    * @return An array of tuples representing the inner subspace.
    */
-  def innerSubspace(epsilon: Float): Array[(Float, Float)] = {
+  private def innerSubspace(epsilon: Float): Array[(Float, Float)] = {
     bbCoords.map { case (min, max) => (min + epsilon, max - epsilon) }
   }
 
