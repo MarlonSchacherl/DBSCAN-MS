@@ -19,7 +19,7 @@ object GetResultLabels {
     } else result
 
     val points = r.map(p => (p.id, p.globalCluster)).distinct
-    val rawLabels = points.map(_._2.toInt) // TODO: Remove toInt cast after fixing bitshift
+    val rawLabels = points.map(_._2)
 
     val labels = if (remappedLabels) {
       val newLabelMapping = rawLabels.distinct.filterNot(_ == -1).zipWithIndex.toMap

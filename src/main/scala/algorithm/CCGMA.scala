@@ -6,8 +6,9 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 
+//TODO: Consider optimization here, how expensive is asScala?
 case object CCGMA {
-  def apply(mergingCandidates: Array[DataPoint]): Map[(Int, Int), Long] = {
+  def apply(mergingCandidates: Array[DataPoint]): Map[(Int, Int), Int] = {
     val mergingObjects: Map[Long, Array[DataPoint]] = mergingCandidates.groupBy(_.id)
 
     val graph = new SimpleGraph[(Int, Int), DefaultEdge](classOf[DefaultEdge])
@@ -33,7 +34,7 @@ case object CCGMA {
 
     connectedComponents.asScala.zipWithIndex.flatMap { case (globalCluster, index) =>
         val globalClusterID = index + 1
-        globalCluster.asScala.map((_, globalClusterID.toLong))
+        globalCluster.asScala.map((_, globalClusterID))
       }.toMap
   }
 }

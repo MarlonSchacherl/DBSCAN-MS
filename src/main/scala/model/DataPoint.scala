@@ -11,7 +11,7 @@ case class DataPoint(data: Array[Float],
                      var mask: Int = -1,
                      var localCluster: Int = -1,
                      var partition: Int = -1,
-                     var globalCluster: Long = -1) {
+                     var globalCluster: Int = -1) {
   override def equals(obj: Any): Boolean = obj match {
     case that: DataPoint => this.id == that.id && this.partition == that.partition
     case _ => false
