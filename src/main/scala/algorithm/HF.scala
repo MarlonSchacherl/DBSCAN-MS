@@ -27,26 +27,24 @@ object HF {
 
     val edge = pivotCandidates(0).distance(pivotCandidates(1), distanceFunction)
 
-    // TODO: This is inefficient because we're computing distances to pivot candidates multiple times.
+    val errors = new Array[Float](dataset.length)
+    for (i <- dataset.indices if !pivotCandidates.contains(dataset(i))) {
+      errors(i) = Math.abs(edge - dataset(i).distance(pivotCandidates(0), distanceFunction))
+    }
+
     for (i <- 2 until numberOfPivotCandidates) {
       var minimalError = Float.MaxValue
       var bestCandidate: DataPoint = null
-
-      for (point <- dataset if !pivotCandidates.contains(point)) {
-        var error = 0.0f
-        for (pivot <- pivotCandidates.take(i)) {
-          error += Math.abs(edge - point.distance(pivot, distanceFunction))
-        }
-
+      for (j <- dataset.indices if !pivotCandidates.contains(dataset(j))) {
+        val error = errors(j) + Math.abs(edge - dataset(j).distance(pivotCandidates(i - 1), distanceFunction))
+        errors(j) = error
         if (error < minimalError) {
           minimalError = error
-          bestCandidate = point
+          bestCandidate = dataset(j)
         }
       }
-
       pivotCandidates(i) = bestCandidate
     }
-
     pivotCandidates
   }
 
