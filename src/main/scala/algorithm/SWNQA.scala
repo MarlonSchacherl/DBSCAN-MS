@@ -21,13 +21,23 @@ case object SWNQA {
 
     for (l <- points.indices) {
       val lPoint = points(l)
-      val searchRegion = lPoint.vectorRep.map(x => (x - epsilon, x + epsilon))
+
+
+      val srLowerBound: Array[Float] = new Array[Float](lPoint.dimensions)
+      val srUpperBound: Array[Float] = new Array[Float](lPoint.dimensions)
+      for (i <- lPoint.vectorRep.indices) {
+        srLowerBound(i) = lPoint.vectorRep(i) - epsilon
+        srUpperBound(i) = lPoint.vectorRep(i) + epsilon
+      }
+
+
+      //val searchRegion = lPoint.vectorRep.map(x => (x - epsilon, x + epsilon))
 
       var u = l
       while (u < points.length && points(u).vectorRep(dimension) - lPoint.vectorRep(dimension) <= epsilon) {
         val uPoint = points(u)
-        if (inSearchRegion(searchRegion, uPoint) && lPoint.distance(uPoint, euclidean) <= epsilon) {
-          neighbourhoods(l) += u
+        if (inSearchRegion(srLowerBound, srUpperBound, uPoint) && lPoint.distance(uPoint, euclidean) <= epsilon) {
+          neighbourhoods(l) += u // There is duplication of assigned points here
           neighbourhoods(u) += l
         }
         u += 1
@@ -36,11 +46,23 @@ case object SWNQA {
     neighbourhoods.map(_.toArray)
   }
 
-  def inSearchRegion(searchRegion: Array[(Float, Float)], point: DataPoint): Boolean = {
+  def inSearchRegion(srLowerBound: Array[Float], srUpperBound: Array[Float], point: DataPoint): Boolean = {
+    /*
     for (i <- searchRegion.indices) {
       if (point.vectorRep(i) < searchRegion(i)._1 || point.vectorRep(i) > searchRegion(i)._2) {
         return false
       }
+    }
+    true
+     */
+
+    var i = 0
+    val n = point.dimensions
+    while (i < n) {
+      if (point.vectorRep(i) < srLowerBound(i) || point.vectorRep(i) > srUpperBound(i)) {
+        return false
+      }
+      i += 1
     }
     true
   }

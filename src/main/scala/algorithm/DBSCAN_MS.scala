@@ -38,7 +38,12 @@ case object DBSCAN_MS {
           dataHasRightLabel: Boolean = false): Array[DataPoint] = {
     require(numberOfPartitions < 4096, "Number of partitions must be < 2^12 (4096) because of how clusters are labeled.")
 
-    val spark = SparkSession.builder().appName("Example").master("local[*]").getOrCreate()
+    val spark = SparkSession.builder()
+      .appName("Example")
+      .config("spark.local.dir", "S:\\temp")
+      .master("local[14]") // * for all cores
+      .config("spark.driver.memory", "4g").config("spark.driver.maxResultSize", "15g")
+      .config("spark.executor.memory", "8g").getOrCreate()
     val sc = spark.sparkContext
     try {
       val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel)

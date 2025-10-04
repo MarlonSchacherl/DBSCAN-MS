@@ -1,0 +1,51 @@
+package bigdata
+
+import algorithm.DBSCAN_MS
+import org.scalatest.funsuite.AnyFunSuite
+import utils.GetResultLabels
+
+
+
+class BigDataTest extends AnyFunSuite{
+  test("densired_2") {
+    val filepath = "data/densired_2.csv"
+    val result = DBSCAN_MS.run(filepath,
+      epsilon = 0.02f,
+      minPts = 3,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.001f,
+      dataHasHeader = false,
+      dataHasRightLabel = false)
+
+    val predLabels = GetResultLabels(result)
+    val groupedLabels = predLabels.groupBy(identity)
+    groupedLabels.foreach(x => println(s"Cluster ${x._1} has ${x._2.length} points"))
+    println(s"Total clusters (including noise): ${groupedLabels.size}")
+  }
+
+  test("Moons 2500 x 2D no Noise") {
+    val filepath = "data/moons_2500x2D.csv"
+    val result = DBSCAN_MS.run(filepath,
+      epsilon = 0.01f,
+      minPts = 5,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.2f,
+      dataHasHeader = true,
+      dataHasRightLabel = true)
+
+    val predLabels = GetResultLabels(result)
+    val groupedLabels = predLabels.groupBy(identity)
+    assert(groupedLabels.size == 2)
+    groupedLabels.foreach(x => assert(x._2.length == 1250))
+  }
+
+  test("DataPoint size test") {
+    val dataPoints = (1 to 20000000).map(i => model.DataPoint(Array.fill(2)(i.toFloat), -1, vectorRep = Array.fill(2)(i.toFloat))).toArray
+
+//    assert(dataPoints.length == 2000000)
+    dataPoints.foreach(println)
+  }
+}
+
