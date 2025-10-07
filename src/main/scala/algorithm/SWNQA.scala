@@ -2,6 +2,7 @@ package algorithm
 
 import model.DataPoint
 import utils.Distance.euclidean
+import utils.TinyArrayBuffer
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -21,7 +22,7 @@ object SWNQA {
   }
 
   def execute(points: Array[DataPoint], dimension: Int, epsilon: Float): Array[Array[Int]] = {
-    val neighbourhoods: Array[ArrayBuffer[Int]] = Array.fill(points.length)(ArrayBuffer[Int]())
+    val neighbourhoods: Array[TinyArrayBuffer] = Array.fill(points.length)(new TinyArrayBuffer())
     val srLowerBound: Array[Float] = new Array[Float](points.head.dimensions)
     val srUpperBound: Array[Float] = new Array[Float](points.head.dimensions)
 
