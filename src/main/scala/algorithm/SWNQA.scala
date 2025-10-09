@@ -17,11 +17,11 @@ object SWNQA {
    *         of the respective data points in the input array (Int), ordered the same way as the input.
    * @note Data points must be sorted along dimension before passing them to this function!
    */
-  def apply(points: Array[DataPoint], dimension: Int, epsilon: Float): Array[Array[Int]] = {
-    execute(points, dimension, epsilon)
+  def apply(points: Array[DataPoint], dimension: Int, epsilon: Float, minPts: Int): Array[Array[Int]] = {
+    execute(points, dimension, epsilon, minPts)
   }
 
-  def execute(points: Array[DataPoint], dimension: Int, epsilon: Float): Array[Array[Int]] = {
+  def execute(points: Array[DataPoint], dimension: Int, epsilon: Float, minPts: Int): Array[Array[Int]] = {
     val neighbourhoods: Array[TinyArrayBuffer] = Array.fill(points.length)(new TinyArrayBuffer())
     val srLowerBound: Array[Float] = new Array[Float](points.head.dimensions)
     val srUpperBound: Array[Float] = new Array[Float](points.head.dimensions)
@@ -43,6 +43,9 @@ object SWNQA {
         }
         u += 1
       }
+
+      // If lPoint has < minPts neighbours, we can delete its neighbourhood to save memory
+      if (neighbourhoods(l).length < minPts) neighbourhoods(l) = new TinyArrayBuffer()
     }
     neighbourhoods.map(_.toArray)
   }

@@ -4,7 +4,7 @@ package utils
  * A minimalistic, memory-efficient alternative to `scala.collection.mutable.ArrayBuffer`
  * that avoids boxing, reducing memory usage to roughly one quarter of the standard implementation.
  *
- * Only provides methods to append elements one at a time and converting to a plain `Array[Int]`.
+ * Only provides methods to append elements one at a time, returning length and converting to a plain `Array[Int]`.
  *
  * @param initialCapacity The initial capacity of the buffer. (default: 16).
  */
@@ -51,4 +51,11 @@ class TinyArrayBuffer(initialCapacity: Int = 16) {
       result
     }
   }
+
+  /**
+   * Returns the number of elements in the buffer.
+   *
+   * @return The number of elements.
+   */
+  def length: Int = elemCounter
 }

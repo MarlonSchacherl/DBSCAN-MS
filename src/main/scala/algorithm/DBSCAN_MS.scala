@@ -75,13 +75,14 @@ object DBSCAN_MS {
     require(numberOfPartitions == subspaces.length, "Something has gone very wrong. Number of partitions does not match number of subspaces.")
     val partitionedRDD = data.partitionBy(new HashPartitioner(numberOfPartitions)).map(_._2)
 
+    println("Start clustering partitions.")
     val clusteredRDD: RDD[DataPoint] = partitionedRDD.mapPartitions(iter => {
       val partition = iter.toArray
       val rng = new scala.util.Random(seed)
       val dimension = rng.nextInt(partition.head.dimensions)
 
       val sortedPartition = partition.sortBy(point => point.vectorRep(dimension))
-      val neighbourhoods = SWNQA(sortedPartition, dimension, epsilon)
+      val neighbourhoods = SWNQA(sortedPartition, dimension, epsilon, minPts)
 
       localDBSCAN(sortedPartition, neighbourhoods, minPts).iterator
     })
