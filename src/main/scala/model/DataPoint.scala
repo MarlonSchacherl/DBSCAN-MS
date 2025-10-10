@@ -8,7 +8,7 @@ case class DataPoint(data: Array[Float],
                      var label: Int = LABEL.UNDEFINED,
                      var visited: Boolean = false,
                      var vectorRep: Array[Float] = null,
-                     var mask: Int = -1,
+                     var mask: Boolean = false,
                      var localCluster: Int = -1,
                      var partition: Int = -1,
                      var globalCluster: Int = -1) {
@@ -51,5 +51,5 @@ case class DataPoint(data: Array[Float],
    *
    * @note We're only making shallow copies, therefore assuming data & vectorRep won't be changed after withMask is called
    */
-  def withMask(mask: Int): DataPoint = this.copy(mask = mask)
+  def withMask(): DataPoint = this.copy(mask = true)
 }

@@ -22,12 +22,7 @@ object kPA {
     for (i <- subspaces.indices) {
       val subspace = subspaces(i)
       if (inside(newPoint, subspace.outer)) {
-        val mask = (inside(newPoint, subspace.bbCoords), inside(newPoint, subspace.inner)) match {
-          case (true, true)  => MASK.SPACE_INNER
-          case (true, false) => MASK.MARGIN_INNER
-          case (false, _)    => MASK.MARGIN_OUTER
-        }
-        val pointWithMask = newPoint.withMask(mask)
+        val pointWithMask =  if (inside(newPoint, subspace.inner)) newPoint else newPoint.withMask()
         pointWithMask.partition = i
         returnList = returnList :+ (i, pointWithMask)
       }
