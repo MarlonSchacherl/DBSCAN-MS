@@ -45,9 +45,8 @@ case class DataPoint(data: Array[Float],
   def withVectorRep(vectorRep: Array[Float]): DataPoint = this.copy(vectorRep = vectorRep)
 
   /**
-   * Copies the DataPoint and sets the mask to the given value.
-   * @param mask The new mask.
-   * @return A new DataPoint with the given mask.
+   * Copies the DataPoint and sets the margin mask.
+   * @return A new DataPoint with the set mask.
    *
    * @note We're only making shallow copies, therefore assuming data & vectorRep won't be changed after withMask is called
    */
