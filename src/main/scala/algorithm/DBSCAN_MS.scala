@@ -89,7 +89,6 @@ object DBSCAN_MS {
 
 
     // As per DBSCAN-MS, Section VII: "we only need to transfer the core and border objects in the margins"
-    // TODO: Check if Mask is necessary: no conditional for SPACE_INNER? => Margin conditional could be replaced by bool
     val mergingCandidates = clusteredRDD.filter(point =>
       point.mask && (point.label == LABEL.CORE || point.label == LABEL.BORDER)).collect()
     val bcGlobalClusterMappings = sc.broadcast(CCGMA(mergingCandidates))
