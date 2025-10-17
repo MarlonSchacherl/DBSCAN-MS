@@ -36,19 +36,19 @@ case class DataPoint(data: Array[Float],
   def dimensions: Int = vectorRep.length
 
   /**
-   * Copies the DataPoint and sets the vectorRep to the given value.
+   * Copies this DataPoint and sets the `vectorRep` to the given value.
    * @param vectorRep The new vector representation.
    * @return A new DataPoint with the given vectorRep.
    *
-   * @note We're only making shallow copies, therefore assuming data won't be changed after withVectorRep is called
+   * @note '''We're only making shallow copies, therefore assuming data won't be changed after withVectorRep is called'''
    */
   def withVectorRep(vectorRep: Array[Float]): DataPoint = this.copy(vectorRep = vectorRep)
 
   /**
-   * Copies the DataPoint and sets the margin mask.
+   * Copies this DataPoint and sets the `margin` mask.
    * @return A new DataPoint with the set mask.
    *
-   * @note We're only making shallow copies, therefore assuming data & vectorRep won't be changed after withMask is called
+   * @note '''We're only making shallow copies, therefore assuming data & vectorRep won't be changed after withMask is called'''
    */
   def withMask(): DataPoint = this.copy(mask = true)
 }
