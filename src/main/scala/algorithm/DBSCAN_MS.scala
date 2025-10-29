@@ -23,7 +23,7 @@ object DBSCAN_MS {
    * @param epsilon            The maximum distance two points can be apart to be considered neighbours.
    * @param minPts             The minimum number of points required to form a dense region.
    * @param numberOfPivots     The number of pivots to be used for subspace decomposition and neighbourhood search optimization.
-   * @param numberOfPartitions The number of partitions for data distribution. Must be <= 4096.
+   * @param numberOfPartitions The number of partitions for data distribution. Must be < 4096.
    * @param samplingDensity    The fraction of data used for sampling operations. E.g., 0.01 is 1% of the data (default: 0.001).
    * @param seed               The random seed used for reproducibility of results. Default: `42`.
    * @param dataHasHeader      Indicates whether the input file contains a header row (default: false).
@@ -68,7 +68,7 @@ object DBSCAN_MS {
    * @param epsilon            The maximum distance two points can be apart to be considered neighbours.
    * @param minPts             The minimum number of points required to form a dense region.
    * @param numberOfPivots     The number of pivots to be used for subspace decomposition and neighbourhood search optimization.
-   * @param numberOfPartitions The number of partitions for data distribution. Must be <= 4096.
+   * @param numberOfPartitions The number of partitions for data distribution. Must be < 4096.
    * @param samplingDensity    The fraction of data used for sampling operations. E.g., 0.01 is 1% of the data (default: 0.001).
    * @param seed               The random seed used for reproducibility of results. Default: `42`.
    * @return An RDD of [[DataPoint]] objects representing the clustered data.
