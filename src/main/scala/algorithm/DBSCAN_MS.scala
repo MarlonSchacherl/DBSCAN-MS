@@ -42,15 +42,11 @@ object DBSCAN_MS {
     require(numberOfPartitions < 4096, "Number of partitions must be < 2^12 (4096) because of how clusters are labeled.")
 
     val sc = spark.sparkContext
-    try {
-      val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions)
-      val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
-      val clusteredRDD = dbscan_ms(sc, rdd, epsilon, minPts, seed, numberOfPivots, numberOfPartitions, sampledData)
-      clusteredRDD.collect()
-    }
-    finally {
-      spark.stop()
-    }
+
+    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions)
+    val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
+    val clusteredRDD = dbscan_ms(sc, rdd, epsilon, minPts, seed, numberOfPivots, numberOfPartitions, sampledData)
+    clusteredRDD.collect()
   }
 
   private def dbscan_ms(sc: SparkContext,
