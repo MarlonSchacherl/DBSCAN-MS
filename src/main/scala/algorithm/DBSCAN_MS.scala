@@ -29,7 +29,8 @@ object DBSCAN_MS {
    * @param dataHasRightLabel  Indicates whether the input file contains ground truth labels for validation (default: false).
    * @return An array of `DataPoint` objects representing the clustered data.
    */
-  def run(filepath: String,
+  def run(spark: SparkSession,
+          filepath: String,
           epsilon: Float,
           minPts: Int,
           numberOfPivots: Int,
@@ -40,12 +41,6 @@ object DBSCAN_MS {
           dataHasRightLabel: Boolean = false): Array[DataPoint] = {
     require(numberOfPartitions < 4096, "Number of partitions must be < 2^12 (4096) because of how clusters are labeled.")
 
-    val spark = SparkSession.builder()
-      .appName("Example")
-      .config("spark.local.dir", "S:\\temp")
-      .master("local[14]") // * for all cores
-      .config("spark.driver.memory", "4g").config("spark.driver.maxResultSize", "15g")
-      .config("spark.executor.memory", "8g").getOrCreate()
     val sc = spark.sparkContext
     try {
       val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions)
@@ -120,7 +115,7 @@ object DBSCAN_MS {
     rdd1.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}
   }
 
-  private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean): DataPoint = {
+  private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean = false): DataPoint = {
     val data = line.split(",").map(_.toFloat)
     val cleanedData = if (hasRightLabel) data.dropRight(1) else data
     DataPoint(cleanedData, id = index)

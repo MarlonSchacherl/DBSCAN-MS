@@ -2,19 +2,22 @@ package bigdata
 
 import algorithm.DBSCAN_MS
 import org.scalatest.funsuite.AnyFunSuite
+import testutils.TestSparkSession
 import utils.GetResultLabels
 
 
 
 class BigDataTest extends AnyFunSuite{
+  // VM config: -Xmx32g
   test("densired_2") {
     val filepath = "data/densired_2.csv"
-    val result = DBSCAN_MS.run(filepath,
+    val result = DBSCAN_MS.run(TestSparkSession.getOrCreate(),
+      filepath,
       epsilon = 0.02f,
-      minPts = 3,
+      minPts = 20,
       numberOfPivots = 10,
       numberOfPartitions = 10,
-      samplingDensity = 0.001f,
+      samplingDensity = 0.0005f,
       dataHasHeader = false,
       dataHasRightLabel = false)
 
@@ -24,9 +27,26 @@ class BigDataTest extends AnyFunSuite{
     println(s"Total clusters (including noise): ${groupedLabels.size}")
   }
 
+  test("densired_2_sampled50p") {
+    val filepath = "data/densired_2_sampled50p.csv"
+    val result = DBSCAN_MS.run(TestSparkSession.getOrCreate(),
+      filepath,
+      epsilon = 0.07f,
+      minPts = 20,
+      numberOfPivots = 10,
+      numberOfPartitions = 10,
+      samplingDensity = 0.001f)
+
+    val predLabels = GetResultLabels(result)
+    val groupedLabels = predLabels.groupBy(identity)
+    groupedLabels.foreach(x => println(s"Cluster ${x._1} has ${x._2.length} points"))
+    println(s"Total clusters (including noise): ${groupedLabels.size}")
+  }
+
   test("Moons 2500 x 2D no Noise") {
     val filepath = "data/moons_2500x2D.csv"
-    val result = DBSCAN_MS.run(filepath,
+    val result = DBSCAN_MS.run(TestSparkSession.getOrCreate(),
+      filepath,
       epsilon = 0.01f,
       minPts = 5,
       numberOfPivots = 10,

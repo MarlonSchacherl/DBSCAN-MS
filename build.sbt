@@ -9,8 +9,14 @@ lazy val root = (project in file("."))
 
 libraryDependencies ++= Seq("org.apache.spark" %% "spark-core" % "4.0.1" % "provided",
                             "org.apache.spark" %% "spark-sql" % "4.0.1" % "provided",
-                            "org.scalanlp" %% "breeze" % "2.1.0",
-                            "org.scalanlp" %% "breeze-viz" % "2.1.0",
                             "org.scalatest" %% "scalatest" % "3.2.19" % Test,
                             "org.jgrapht" % "jgrapht-core" % "1.5.2")
 
+// Assembly settings
+assembly / mainClass := Some("app.Main")
+assembly / assemblyJarName := "dbscan_ms.jar"
+
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case _ => MergeStrategy.first
+}
