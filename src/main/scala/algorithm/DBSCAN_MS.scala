@@ -144,7 +144,20 @@ object DBSCAN_MS {
     clustered.values.union(trueNoise)
   }
 
-  def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
+  /**
+   * Reads a dataset of numeric vectors from a text or CSV file into an RDD of [[DataPoint]] objects.
+   *
+   * Each line of the input file is expected to represent a single data point as a comma-separated list
+   * of numeric values. Optionally, a header row and/or a ground-truth label column may be present.
+   * Line indices are preserved and assigned as unique IDs to each [[DataPoint]].
+   *
+   * @param sc            The active [[SparkContext]] used for file reading and RDD creation.
+   * @param path          Path to the input dataset file.
+   * @param hasHeader     Whether the input file contains a header row (default: `false`).
+   * @param hasRightLabel Whether the input file contains a ground-truth label in the last column (default: `false`).
+   * @return An RDD of [[DataPoint]] objects representing the parsed dataset.
+   */
+  private def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
     val rdd = sc.textFile(path).zipWithIndex()
     val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
     rdd1.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}
