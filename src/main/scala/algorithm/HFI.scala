@@ -108,7 +108,15 @@ object HFI {
    */
   def L_infNorm(a: List[Float], b: List[Float]): Float = {
     require(a.length == b.length, "Data points must have the same dimension")
-    a.zip(b).map { case (x, y) => Math.abs(x - y) }.max
+    var i = 0
+    var max = 0.0f
+    val n = a.length
+    while (i < n) {
+      val x = Math.abs(a(i) - b(i))
+      if (x > max) max = x
+      i += 1
+    }
+    max
   }
 
   /**
