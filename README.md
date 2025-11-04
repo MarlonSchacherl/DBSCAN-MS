@@ -1,6 +1,6 @@
 ## Execution
 
-This application runs as a standard Spark job, requiring the built assembly JAR. It supports either 7 (minimum required parameters) or 10 arguments. If the last three optional boolean flags are omitted, they default to `false`.
+This application supports either 7 (minimum required parameters) or 10 arguments. If the last three optional boolean flags are omitted, they default to `false`.
 
 ### Argument Order and Types
 
