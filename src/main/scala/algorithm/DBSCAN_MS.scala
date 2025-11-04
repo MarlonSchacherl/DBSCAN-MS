@@ -43,7 +43,10 @@ object DBSCAN_MS {
                   dataHasHeader: Boolean = false,
                   dataHasRightLabel: Boolean = false): Array[DataPoint] = {
     val sc = spark.sparkContext
-    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions)
+    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions).cache()
+
+    val start = System.nanoTime()
+
     val clusteredRDD = run(sc,
                           rdd,
                           epsilon,
@@ -52,7 +55,60 @@ object DBSCAN_MS {
                           numberOfPartitions,
                           samplingDensity,
                           seed)
-    clusteredRDD.collect()
+    val result = clusteredRDD.collect()
+
+    val end = System.nanoTime()
+    val duration = (end - start) / 1e9
+    Console.out.println(f"Completed in $duration%.2f seconds")
+
+    result
+  }
+
+  /**
+   * Convenience wrapper for [[run]] that only performs a count at the end without collecting the results.
+   *
+   * Input must be a CSV file of numeric vectors, optionally with a header row and/or ground-truth labels in the last column.
+   *
+   * @param spark              The SparkSession to use for execution.
+   * @param filepath           The path to the input file containing the data to be clustered.
+   * @param epsilon            The maximum distance two points can be apart to be considered neighbours.
+   * @param minPts             The minimum number of points required to form a dense region.
+   * @param numberOfPivots     The number of pivots to be used for subspace decomposition and neighbourhood search optimization.
+   * @param numberOfPartitions The number of partitions for data distribution. Must be < 4096.
+   * @param samplingDensity    The fraction of data used for sampling operations. E.g., 0.01 is 1% of the data (default: 0.001).
+   * @param seed               The random seed used for reproducibility of results. Default: `42`.
+   * @param dataHasHeader      Indicates whether the input file contains a header row (default: false).
+   * @param dataHasRightLabel  Indicates whether the input file contains ground truth labels for validation (default: false).
+   *
+   * @see [[run]] for the underlying algorithm.
+   */
+  def runWithoutCollect(spark: SparkSession,
+                        filepath: String,
+                        epsilon: Float,
+                        minPts: Int,
+                        numberOfPivots: Int,
+                        numberOfPartitions: Int,
+                        samplingDensity: Double = 0.001,
+                        seed: Int = 42,
+                        dataHasHeader: Boolean = false,
+                        dataHasRightLabel: Boolean = false): Unit = {
+    val sc = spark.sparkContext
+    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions).cache()
+    println(rdd.count())
+
+    val start = System.currentTimeMillis()
+    val count = run(sc,
+                    rdd,
+                    epsilon,
+                    minPts,
+                    numberOfPivots,
+                    numberOfPartitions,
+                    samplingDensity,
+                    seed).count()
+    val end = System.currentTimeMillis()
+    println(f"Count: $count")
+    val duration = (end - start) / 1000D / 60D
+    println(f"DBSCAN-MS completed in ${duration.toInt} minutes.")
   }
 
   /**
@@ -157,7 +213,7 @@ object DBSCAN_MS {
    * @param hasRightLabel Whether the input file contains a ground-truth label in the last column (default: `false`).
    * @return An RDD of [[DataPoint]] objects representing the parsed dataset.
    */
-  private def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
+  def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
     val rdd = sc.textFile(path).zipWithIndex()
     val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
     rdd1.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}

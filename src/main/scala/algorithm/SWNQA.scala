@@ -22,7 +22,7 @@ object SWNQA {
   }
 
   def execute(points: Array[DataPoint], dimension: Int, epsilon: Float, minPts: Int): Array[Array[Int]] = {
-    val neighbourhoods: Array[TinyArrayBuffer] = Array.fill(points.length)(new TinyArrayBuffer())
+    val neighbourhoods: Array[TinyArrayBuffer] = Array.fill(points.length)(new TinyArrayBuffer(32))
     val srLowerBound: Array[Float] = new Array[Float](points.head.dimensions)
     val srUpperBound: Array[Float] = new Array[Float](points.head.dimensions)
 
