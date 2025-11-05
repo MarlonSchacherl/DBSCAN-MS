@@ -194,8 +194,11 @@ object DBSCAN_MS {
     })
 
     // Eliminate duplicates
+    // Group duplicates by ID
     val duplicates = mergedRDD.filter(_.mask).collect()
     val grouped: Map[Long, Array[DataPoint]] = duplicates.groupBy(_.id)
+
+    // Find representative points for each duplicate
     val representatives = new Array[DataPoint](grouped.size)
     var i = 0
     for ((id, points) <- grouped) {
@@ -208,13 +211,14 @@ object DBSCAN_MS {
       i += 1
     }
     val bcRepresentatives = sc.broadcast(representatives)
+
+    // Filter out duplicates
     mergedRDD.mapPartitions(iter => {
       val partition = iter.toArray
       val thisPartitionID = partition.head.partition
       val toFilter = bcRepresentatives.value.filter(_.partition != thisPartitionID).map(_.id).toSet
       partition.filterNot(point => toFilter.contains(point.id)).iterator
     })
-
   }
 
   /**
