@@ -43,7 +43,7 @@ object DBSCAN_MS {
                   dataHasHeader: Boolean = false,
                   dataHasRightLabel: Boolean = false): Array[DataPoint] = {
     val sc = spark.sparkContext
-    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions).cache()
+    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
 
     val start = System.nanoTime()
 
@@ -93,7 +93,7 @@ object DBSCAN_MS {
                         dataHasHeader: Boolean = false,
                         dataHasRightLabel: Boolean = false): Unit = {
     val sc = spark.sparkContext
-    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).repartition(numberOfPartitions).cache()
+    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
     println(rdd.count())
 
     val start = System.currentTimeMillis()

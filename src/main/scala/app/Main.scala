@@ -69,43 +69,38 @@ object Main {
         Console.out.println("spark.local.dir = " + spark.sparkContext.getConf.get("spark.local.dir", "unset"))
         Console.out.println("java.io.tmpdir  = " + System.getProperty("java.io.tmpdir"))
 
-        if (collectResults) {
-          try {
-            val start = System.nanoTime()
-
-            val data = DBSCAN_MS.runFromFile(spark,
-                                            filepath,
-                                            epsilon,
-                                            minPts,
-                                            numberOfPivots,
-                                            numberOfPartitions,
-                                            samplingDensity,
-                                            seed,
-                                            dataHasHeader,
-                                            dataHasRightLabel)
+        try {
+          if (collectResults) {
+              val data = DBSCAN_MS.runFromFile(spark,
+                                              filepath,
+                                              epsilon,
+                                              minPts,
+                                              numberOfPivots,
+                                              numberOfPartitions,
+                                              samplingDensity,
+                                              seed,
+                                              dataHasHeader,
+                                              dataHasRightLabel)
 
             printClusters(data)
           }
-          finally {
-            spark.stop()
+          else {
+            DBSCAN_MS.runWithoutCollect(spark,
+                                        filepath,
+                                        epsilon,
+                                        minPts,
+                                        numberOfPivots,
+                                        numberOfPartitions,
+                                        samplingDensity,
+                                        seed,
+                                        dataHasHeader,
+                                        dataHasRightLabel)
           }
         }
-        else {
-          try {
-            DBSCAN_MS.runWithoutCollect(spark,
-              filepath,
-              epsilon,
-              minPts,
-              numberOfPivots,
-              numberOfPartitions,
-              samplingDensity,
-              seed,
-              dataHasHeader,
-              dataHasRightLabel)
-          }
-          finally {
-            spark.stop()
-          }
+        finally {
+          spark.stop()
+          System.gc()
+          Thread.sleep(200)
         }
 
       case Failure(ex) =>
