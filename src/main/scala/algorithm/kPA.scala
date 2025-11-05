@@ -43,8 +43,16 @@ object kPA {
    * @param subspaceCoords The bounding box of the subspace.
    * @return True if the point is inside the subspace, false otherwise.
    */
-  def inside(point: DataPoint, subspaceCoords: Array[(Float, Float)]): Boolean = {
+  final def inside(point: DataPoint, subspaceCoords: Array[(Float, Float)]): Boolean = {
     require(point.vectorRep.length == subspaceCoords.length, "Point and subspace must have the same dimension")
-    point.vectorRep.zip(subspaceCoords).forall(x => (x._2._1.isNaN || x._1 >= x._2._1) && (x._2._2.isNaN || x._1 <= x._2._2))
+    val v = point.vectorRep
+    var i = 0
+    while (i < v.length) {
+      val (low, high) = subspaceCoords(i)
+      val x = v(i)
+      if (!((low.isNaN || x >= low) && (high.isNaN || x < high))) return false
+      i += 1
+    }
+    true
   }
 }
