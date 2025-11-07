@@ -159,4 +159,31 @@ class DBSCAN_MSTest extends AnyFunSuite{
     }
   }
 
+  test("Pivot Estimation Test") {
+    val filepath = "data/combined_circles_moons_noise.csv"
+    val spark = TestSparkSession.getOrCreate()
+    try {
+      val result = DBSCAN_MS.runFromFile(spark,
+        filepath,
+        epsilon = 0.1f,
+        minPts = 5,
+        numberOfPivots = -1,
+        numberOfPartitions = 10,
+        samplingDensity = 0.3f,
+        dataHasHeader = true,
+        dataHasRightLabel = true)
+
+      val (originalData, labelsTrue) = Testing.splitData(Testing.readDataToString(filepath, header = true))
+      val predLabels = GetResultLabels(result, originalDataset = Option(originalData))
+
+      assert(result.length == 5010)
+      assert(predLabels.count(_ == -1) == 10)
+      assert(normalizedMutualInfoScore(labelsTrue, predLabels) == 1.0d)
+      assert(predLabels.distinct.length == 5)
+    }
+    finally {
+      spark.stop()
+    }
+  }
+
 }

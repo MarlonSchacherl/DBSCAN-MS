@@ -5,6 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{HashPartitioner, SparkContext, TaskContext}
 import utils.Distance.euclidean
+import utils.IntrinsicDimensionality
 
 import java.time.LocalTime
 
@@ -44,6 +45,7 @@ object DBSCAN_MS {
                   dataHasRightLabel: Boolean = false): Array[DataPoint] = {
     val sc = spark.sparkContext
     val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
+    val numPivots = if (numberOfPivots == -1) estimatePivotNumber(rdd, samplingDensity, seed, euclidean) else numberOfPivots
 
     val start = System.nanoTime()
 
@@ -51,7 +53,7 @@ object DBSCAN_MS {
                           rdd,
                           epsilon,
                           minPts,
-                          numberOfPivots,
+                          numPivots,
                           numberOfPartitions,
                           samplingDensity,
                           seed)
@@ -94,6 +96,7 @@ object DBSCAN_MS {
                         dataHasRightLabel: Boolean = false): Unit = {
     val sc = spark.sparkContext
     val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
+    val numPivots = if (numberOfPivots == -1) estimatePivotNumber(rdd, samplingDensity, seed, euclidean) else numberOfPivots
     println(rdd.count())
 
     val start = System.currentTimeMillis()
@@ -101,7 +104,7 @@ object DBSCAN_MS {
                     rdd,
                     epsilon,
                     minPts,
-                    numberOfPivots,
+                    numPivots,
                     numberOfPartitions,
                     samplingDensity,
                     seed).count()
@@ -221,5 +224,20 @@ object DBSCAN_MS {
     val data = line.split(",").map(_.toFloat)
     val cleanedData = if (hasRightLabel) data.dropRight(1) else data
     DataPoint(cleanedData, id = index)
+  }
+
+  private def estimatePivotNumber(rdd: RDD[DataPoint],
+                                  samplingDensity: Double,
+                                  seed: Int,
+                                  distanceFunction: (Array[Float], Array[Float]) => Float): Int = {
+    Console.out.println("Warning. Estimating the number of pivots may take a while on large samples.")
+    val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
+    val intrDim = IntrinsicDimensionality(sampledData, distanceFunction)
+
+    // Based on 'DBSCAN-MS: Distributed Density-Based Clustering in Metric Spaces' Section VIII.C
+    // "well-chosen pivots should be 1 to 2 times the intrinsic dimensionality of the dataset."
+    val pivots = Math.ceil(intrDim * 1.75).toInt
+    Console.out.println(f"Chosen number of pivots: $pivots")
+    pivots
   }
 }
