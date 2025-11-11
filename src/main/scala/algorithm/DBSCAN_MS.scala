@@ -1,15 +1,19 @@
 package algorithm
 
+import metrics.MetricWriter
+import metrics.entity.{ClusterParameters, DatasetParameters, Measurement}
 import model.{DataPoint, LABEL, MASK}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{HashPartitioner, SparkContext, TaskContext}
 import utils.IntrinsicDimensionality
 
+import java.nio.file.Path
 import java.time.LocalTime
 
 object DBSCAN_MS {
   private val log = org.apache.log4j.LogManager.getLogger(DBSCAN_MS.getClass)
+
   /**
    * Convenience wrapper for [[run]] that reads the dataset from a file.
    *
@@ -30,7 +34,6 @@ object DBSCAN_MS {
    * @param dataHasHeader      Indicates whether the input file contains a header row (default: false).
    * @param dataHasRightLabel  Indicates whether the input file contains ground truth labels for validation (default: false).
    * @return An array of [[DataPoint]] objects representing the clustered data.
-   *
    * @see [[run]] for the underlying algorithm.
    */
   def runFromFile(spark: SparkSession,
@@ -50,13 +53,13 @@ object DBSCAN_MS {
     val start = System.nanoTime()
 
     val clusteredRDD = run(sc,
-                          rdd,
-                          epsilon,
-                          minPts,
-                          numPivots,
-                          numberOfPartitions,
-                          samplingDensity,
-                          seed)
+      rdd,
+      epsilon,
+      minPts,
+      numPivots,
+      numberOfPartitions,
+      samplingDensity,
+      seed)
     val result = clusteredRDD.collect()
 
     val end = System.nanoTime()
@@ -81,7 +84,6 @@ object DBSCAN_MS {
    * @param seed               The random seed used for reproducibility of results. Default: `42`.
    * @param dataHasHeader      Indicates whether the input file contains a header row (default: false).
    * @param dataHasRightLabel  Indicates whether the input file contains ground truth labels for validation (default: false).
-   *
    * @see [[run]] for the underlying algorithm.
    */
   def runWithoutCollect(spark: SparkSession,
@@ -93,7 +95,8 @@ object DBSCAN_MS {
                         samplingDensity: Double = 0.001,
                         seed: Int = 42,
                         dataHasHeader: Boolean = false,
-                        dataHasRightLabel: Boolean = false): Unit = {
+                        dataHasRightLabel: Boolean = false,
+                        metricsPath: String = ""): Unit = {
     val sc = spark.sparkContext
     val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
     val numPivots = if (numberOfPivots == -1) estimatePivotNumber(rdd, samplingDensity, seed) else numberOfPivots
@@ -101,17 +104,23 @@ object DBSCAN_MS {
 
     val start = System.currentTimeMillis()
     val count = run(sc,
-                    rdd,
-                    epsilon,
-                    minPts,
-                    numPivots,
-                    numberOfPartitions,
-                    samplingDensity,
-                    seed).count()
+      rdd,
+      epsilon,
+      minPts,
+      numPivots,
+      numberOfPartitions,
+      samplingDensity,
+      seed
+    ).count()
     val end = System.currentTimeMillis()
     log.info(f"Count: $count")
     val duration = (end - start) / 1000D / 60D
     log.info(f"DBSCAN-MS completed in ${duration.toInt} minutes.")
+    val writer = new MetricWriter(Path.of(metricsPath))
+    val datasetName = filepath.substring(filepath.lastIndexOf('/') + 1, filepath.lastIndexOf('.'))
+    val measurement = new Measurement[ClusterParameters, DatasetParameters]("DBSCAN-MS", end - start, new ClusterParameters(epsilon, minPts), new DatasetParameters(datasetName))
+    writer.writeMetrics(measurement)
+
   }
 
   /**
@@ -217,7 +226,7 @@ object DBSCAN_MS {
   def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
     val rdd = sc.textFile(path).zipWithIndex()
     val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
-    rdd1.map {case (line, index) => makeDataPoint(line, index, hasRightLabel)}
+    rdd1.map { case (line, index) => makeDataPoint(line, index, hasRightLabel) }
   }
 
   private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean = false): DataPoint = {

@@ -23,33 +23,35 @@ object Main {
     }
 
     // Parse arguments
-    val maybeArgs = if (args.length == 10) {
+    val maybeArgs = if (args.length == 11) {
       for {
-        filepath          <- Try(args(0))
-        epsilon           <- Try(args(1).toFloat)
-        minPts            <- Try(args(2).toInt)
-        numberOfPivots    <- Try(args(3).toInt)
-        numberOfPartitions<- Try(args(4).toInt)
-        samplingDensity   <- Try(args(5).toFloat)
-        seed              <- Try(args(6).toInt)
-        dataHasHeader     <- Try(args(7).toBoolean)
-        dataHasRightLabel <- Try(args(8).toBoolean)
-        collectResults    <- Try(args(9).toBoolean)
-      } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, dataHasHeader, dataHasRightLabel, collectResults)
+        filepath <- Try(args(0))
+        epsilon <- Try(args(1).toFloat)
+        minPts <- Try(args(2).toInt)
+        numberOfPivots <- Try(args(3).toInt)
+        numberOfPartitions <- Try(args(4).toInt)
+        samplingDensity <- Try(args(5).toFloat)
+        seed <- Try(args(6).toInt)
+        metricsPath <- Try(args(7))
+        dataHasHeader <- Try(args(8).toBoolean)
+        dataHasRightLabel <- Try(args(9).toBoolean)
+        collectResults <- Try(args(10).toBoolean)
+      } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, metricsPath, dataHasHeader, dataHasRightLabel, collectResults)
     } else {
       for {
-        filepath          <- Try(args(0))
-        epsilon           <- Try(args(1).toFloat)
-        minPts            <- Try(args(2).toInt)
-        numberOfPivots    <- Try(args(3).toInt)
-        numberOfPartitions<- Try(args(4).toInt)
-        samplingDensity   <- Try(args(5).toFloat)
-        seed              <- Try(args(6).toInt)
-      } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, false, false, false)
+        filepath <- Try(args(0))
+        epsilon <- Try(args(1).toFloat)
+        minPts <- Try(args(2).toInt)
+        numberOfPivots <- Try(args(3).toInt)
+        numberOfPartitions <- Try(args(4).toInt)
+        samplingDensity <- Try(args(5).toFloat)
+        seed <- Try(args(6).toInt)
+        metricsPath <- Try(args(7))
+      } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, metricsPath, false, false, false)
     }
 
     maybeArgs match {
-      case Success((filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, dataHasHeader, dataHasRightLabel, collectResults)) =>
+      case Success((filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, metricsPath, dataHasHeader, dataHasRightLabel, collectResults)) =>
         Console.out.println(
           s"""
              |--- DBSCAN-MS Configuration ---
@@ -60,6 +62,7 @@ object Main {
              |Number of Partitions: $numberOfPartitions
              |Sampling Density:     $samplingDensity
              |Seed:                 $seed
+             |Metrics Path:         $metricsPath
              |Data Has Header:      $dataHasHeader
              |Data Has RightLabel:  $dataHasRightLabel
              |Collect Results:      $collectResults
@@ -71,30 +74,31 @@ object Main {
 
         try {
           if (collectResults) {
-              val data = DBSCAN_MS.runFromFile(spark,
-                                              filepath,
-                                              epsilon,
-                                              minPts,
-                                              numberOfPivots,
-                                              numberOfPartitions,
-                                              samplingDensity,
-                                              seed,
-                                              dataHasHeader,
-                                              dataHasRightLabel)
+            val data = DBSCAN_MS.runFromFile(spark,
+              filepath,
+              epsilon,
+              minPts,
+              numberOfPivots,
+              numberOfPartitions,
+              samplingDensity,
+              seed,
+              dataHasHeader,
+              dataHasRightLabel)
 
             printClusters(data)
           }
           else {
             DBSCAN_MS.runWithoutCollect(spark,
-                                        filepath,
-                                        epsilon,
-                                        minPts,
-                                        numberOfPivots,
-                                        numberOfPartitions,
-                                        samplingDensity,
-                                        seed,
-                                        dataHasHeader,
-                                        dataHasRightLabel)
+              filepath,
+              epsilon,
+              minPts,
+              numberOfPivots,
+              numberOfPartitions,
+              samplingDensity,
+              seed,
+              dataHasHeader,
+              dataHasRightLabel,
+              metricsPath)
           }
         }
         finally {
