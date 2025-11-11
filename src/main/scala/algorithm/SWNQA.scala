@@ -49,7 +49,7 @@ object SWNQA {
     neighbourhoods.map(_.toArray)
   }
 
-  def inSearchRegion(srLowerBound: Array[Float], srUpperBound: Array[Float], point: DataPoint): Boolean = {
+  final def inSearchRegion(srLowerBound: Array[Float], srUpperBound: Array[Float], point: DataPoint): Boolean = {
     var i = 0
     val n = point.dimensions
     while (i < n) {
