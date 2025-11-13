@@ -8,22 +8,22 @@ import scala.util.{Failure, Success, Try}
 
 object Main {
   def main(args: Array[String]): Unit = {
-    if (args.length != 10 && args.length != 7) {
+    if (args.length != 10 && args.length != 8) {
       Console.err.println(
         s"""
            |Invalid number of arguments.
-           |Usage: <filepath:String> <epsilon:Float> <minPts:Int> <numberOfPivots:Int> <numberOfPartitions:Int> <samplingDensity:Float> <seed:Int> [<dataHasHeader:Boolean> <dataHasRightLabel:Boolean> <collectResults:Boolean>]
+           |Usage: <filepath:String> <epsilon:Float> <minPts:Int> <numberOfPivots:Int> <numberOfPartitions:Int> <samplingDensity:Float> <seed:Int> [<metricsPath:String>] [<dataHasHeader:Boolean> <dataHasRightLabel:Boolean> <collectResults:Boolean>]
            |
            |Example:
            |  spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42 true false true
-           |Or, if all boolean arguments are false, they can be omitted:
-           |  spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42
+           |Or, if all boolean arguments are false, they can be omitted, but metrics path must be specified:
+           |  spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42 metrics
          """.stripMargin)
       System.exit(1)
     }
 
     // Parse arguments
-    val maybeArgs = if (args.length == 11) {
+    val maybeArgs = if (args.length == 10) {
       for {
         filepath <- Try(args(0))
         epsilon <- Try(args(1).toFloat)
@@ -32,12 +32,11 @@ object Main {
         numberOfPartitions <- Try(args(4).toInt)
         samplingDensity <- Try(args(5).toFloat)
         seed <- Try(args(6).toInt)
-        metricsPath <- Try(args(7))
-        dataHasHeader <- Try(args(8).toBoolean)
-        dataHasRightLabel <- Try(args(9).toBoolean)
-        collectResults <- Try(args(10).toBoolean)
-      } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, metricsPath, dataHasHeader, dataHasRightLabel, collectResults)
-    } else {
+        dataHasHeader <- Try(args(7).toBoolean)
+        dataHasRightLabel <- Try(args(8).toBoolean)
+        collectResults <- Try(args(9).toBoolean)
+      } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, null, dataHasHeader, dataHasRightLabel, collectResults)
+    } else if (args.length == 8) {
       for {
         filepath <- Try(args(0))
         epsilon <- Try(args(1).toFloat)
@@ -48,6 +47,8 @@ object Main {
         seed <- Try(args(6).toInt)
         metricsPath <- Try(args(7))
       } yield (filepath, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed, metricsPath, false, false, false)
+    } else {
+      throw new IllegalArgumentException("Invalid number of arguments")
     }
 
     maybeArgs match {
@@ -89,16 +90,15 @@ object Main {
           }
           else {
             DBSCAN_MS.runWithoutCollect(spark,
-              filepath,
-              epsilon,
-              minPts,
-              numberOfPivots,
-              numberOfPartitions,
-              samplingDensity,
-              seed,
-              dataHasHeader,
-              dataHasRightLabel,
-              metricsPath)
+                                        filepath,
+                                        epsilon,
+                                        minPts,
+                                        numberOfPivots,
+                                        numberOfPartitions,
+                                        samplingDensity, seed,
+                                        metricsPath,
+                                        dataHasRightLabel,
+                                        dataHasHeader)
           }
         }
         finally {

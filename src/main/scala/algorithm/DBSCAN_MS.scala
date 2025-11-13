@@ -82,6 +82,7 @@ object DBSCAN_MS {
    * @param numberOfPartitions The number of partitions for data distribution. Must be < 4096.
    * @param samplingDensity    The fraction of data used for sampling operations. E.g., 0.01 is 1% of the data (default: 0.001).
    * @param seed               The random seed used for reproducibility of results. Default: `42`.
+   * @param metricsPath        The path to the directory where metrics will be written. Default: empty string, which means no metrics will be written.
    * @param dataHasHeader      Indicates whether the input file contains a header row (default: false).
    * @param dataHasRightLabel  Indicates whether the input file contains ground truth labels for validation (default: false).
    * @see [[run]] for the underlying algorithm.
@@ -94,9 +95,9 @@ object DBSCAN_MS {
                         numberOfPartitions: Int,
                         samplingDensity: Double = 0.001,
                         seed: Int = 42,
-                        dataHasHeader: Boolean = false,
+                        metricsPath: String = "",
                         dataHasRightLabel: Boolean = false,
-                        metricsPath: String = ""): Unit = {
+                        dataHasHeader: Boolean = false): Unit = {
     val sc = spark.sparkContext
     val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
     val numPivots = if (numberOfPivots == -1) estimatePivotNumber(rdd, samplingDensity, seed) else numberOfPivots
@@ -118,7 +119,10 @@ object DBSCAN_MS {
     log.info(f"DBSCAN-MS completed in ${duration.toInt} minutes.")
     val writer = new MetricWriter(Path.of(metricsPath))
     val datasetName = filepath.substring(filepath.lastIndexOf('/') + 1, filepath.lastIndexOf('.'))
-    val measurement = new Measurement[ClusterParameters, DatasetParameters]("DBSCAN-MS", end - start, new ClusterParameters(epsilon, minPts), new DatasetParameters(datasetName))
+    val measurement = new Measurement[ClusterParameters, DatasetParameters]("DBSCAN-MS",
+                                                                            end - start,
+                                                                            new ClusterParameters(epsilon, minPts),
+                                                                            new DatasetParameters(datasetName))
     writer.writeMetrics(measurement)
 
   }

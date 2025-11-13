@@ -1,23 +1,46 @@
 ## Execution
 
-This application supports either 7 (minimum required parameters) or 10 arguments. If the last three optional boolean flags are omitted, they default to `false`.
+This application runs in two modes supporting either 8 or 10 arguments.
 
 ### Argument Order and Types
 
-The parameters must be provided in the following order:
+ The parameters must be provided in the following order:
 
-| **#** | **Name**             | **Type**    | **Description**                                                                                                                                                             | **Required / Optional** |
-|:-----:|:---------------------|:------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------:|
-|   1   | `filepath`           | **String**  | Path to the input data file.                                                                                                                                                |        Required         |
-|   2   | `epsilon`            | **Float**   | DBSCAN neighborhood radius ($\epsilon$).                                                                                                                                    |        Required         |
-|   3   | `minPts`             | **Int**     | Minimum number of points required to form a dense region ($MinPts$).                                                                                                        |        Required         |
-|   4   | `numberOfPivots`     | **Int**     | Number of pivot points. Enter `-1` to let the amount of pivots be automatically calculated. Intrinsic dimensionality will be used as a measure.                             |        Required         |
-|   5   | `numberOfPartitions` | **Int**     | Number of Spark partitions.                                                                                                                                                 |        Required         |
-|   6   | `samplingDensity`    | **Float**   | Density of random sampling used to select pivots (0.0 < density $\leq$ 1.0. (E.g., 0.01 is 1% of the data)). Sample size significantly impacts pivot selection performance. |        Required         |
-|   7   | `seed`               | **Int**     | Random seed for reproducibility.                                                                                                                                            |        Required         |
-|   8   | `dataHasHeader`      | **Boolean** | If `true`, skips the first row of the input file. **(Default: `false`)**                                                                                                    |        Optional         |
-|   9   | `dataHasRightLabel`  | **Boolean** | If `true`, treats the last column as a ground truth label for evaluation/output. **(Default: `false`)**                                                                     |        Optional         |
-|  10   | `collectResult`      | **Boolean** | If `true`, collects results to the driver and prints cluster counts to the console.  **(Default: `false`)**                                                                 |        Optional         |
+**Mode 1:** 
+
+A directory for the metrics needs to be provided. Results won't be collected, only the runtime will be measured.
+
+| **#** | **Name**             | **Type**   | **Description**                                                                                                                                                             |
+|:-----:|:---------------------|:-----------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|   1   | `filepath`           | **String** | Path to the input data file.                                                                                                                                                |
+|   2   | `epsilon`            | **Float**  | DBSCAN neighborhood radius ($\epsilon$).                                                                                                                                    |
+|   3   | `minPts`             | **Int**    | Minimum number of points required to form a dense region ($MinPts$).                                                                                                        |
+|   4   | `numberOfPivots`     | **Int**    | Number of pivot points. Enter `-1` to let the amount of pivots be automatically calculated. Intrinsic dimensionality will be used as a measure.                             |
+|   5   | `numberOfPartitions` | **Int**    | Number of Spark partitions.                                                                                                                                                 |
+|   6   | `samplingDensity`    | **Float**  | Density of random sampling used to select pivots (0.0 < density $\leq$ 1.0. (E.g., 0.01 is 1% of the data)). Sample size significantly impacts pivot selection performance. |
+|   7   | `seed`               | **Int**    | Random seed for reproducibility.                                                                                                                                            |
+|   8   | `metricsPath`        | **String** | Path to output metrics file.                                                                                                                                                |
+
+---
+
+**Mode 2:**
+
+Flags for collecting results and input data need to be set.
+
+| **#** | **Name**             | **Type**    | **Description**                                                                                                                                                             |
+|:-----:|:---------------------|:------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|   1   | `filepath`           | **String**  | Path to the input data file.                                                                                                                                                |
+|   2   | `epsilon`            | **Float**   | DBSCAN neighborhood radius ($\epsilon$).                                                                                                                                    |
+|   3   | `minPts`             | **Int**     | Minimum number of points required to form a dense region ($MinPts$).                                                                                                        |
+|   4   | `numberOfPivots`     | **Int**     | Number of pivot points. Enter `-1` to let the amount of pivots be automatically calculated. Intrinsic dimensionality will be used as a measure.                             |
+|   5   | `numberOfPartitions` | **Int**     | Number of Spark partitions.                                                                                                                                                 |
+|   6   | `samplingDensity`    | **Float**   | Density of random sampling used to select pivots (0.0 < density $\leq$ 1.0. (E.g., 0.01 is 1% of the data)). Sample size significantly impacts pivot selection performance. |
+|   7   | `seed`               | **Int**     | Random seed for reproducibility.                                                                                                                                            |
+|   8   | `dataHasHeader`      | **Boolean** | If `true`, skips the first row of the input file. **(Default: `false`)**                                                                                                    |
+|   9   | `dataHasRightLabel`  | **Boolean** | If `true`, treats the last column as a ground truth label for evaluation/output. **(Default: `false`)**                                                                     |
+|  10   | `collectResult`      | **Boolean** | If `true`, collects results to the driver and prints cluster counts to the console.  **(Default: `false`)**                                                                 |
+
+---
 
 ### Usage Example
 

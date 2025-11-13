@@ -52,3 +52,4 @@ build/
 /src/main/scala/algorithm/testing.sc
 /src/main/scala/utils/testfile.scala
 /data/
+/metrics/
