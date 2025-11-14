@@ -79,12 +79,17 @@ object HFI {
     val opCardinality = dataset.length * (dataset.length - 1) / 2.0f
     val mappedDataset = dataset.map(MapPointToVectorSpace(_, pivots, pointer))
     var sum = 0.0f
+    var count = 0
     for (i <- dataset.indices) {
       for (j <- i + 1 until dataset.length) {
-        sum += L_infNorm(mappedDataset(i), mappedDataset(j)) / distanceMatrix(i)(j - i - 1)
+        val d = distanceMatrix(i)(j - i - 1)
+        if (d != 0) {
+          sum += L_infNorm(mappedDataset(i), mappedDataset(j)) / d
+          count += 1
+        }
       }
     }
-    sum / opCardinality
+    sum / count
   }
 
   /**
