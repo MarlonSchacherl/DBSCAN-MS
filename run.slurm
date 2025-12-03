@@ -3,7 +3,7 @@
 #SBATCH --nodes=4
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=16
-#SBATCH --output=rp-dbscan_output_%j.txt
+#SBATCH --output=dbscan-ms_output_%j.txt
 #SBATCH --time=05:00:00
 #SBATCH --mail-user=siepef@uni-marburg.de
 #SBATCH --mail-type=END
@@ -16,14 +16,10 @@ module purge
 module load openjdk/21.0.2
 
 # Capture arguments to forward to inner script
-DATASET=$1; DIM=$2; EPS=$3; MINPTS=$4; NUM_PARTITIONS=$5; EXP_DIR=$6; NUM_PIVOT=$7; NUM_PIVOT=$8
+DATASET=$1; DIM=$2; EPS=$3; MINPTS=$4; NUM_PARTITIONS=$5; EXP_DIR=$6; NUM_PIVOT=$7; SAMPLING_DENSITY=$8
 
 # Set spark env
 SPARK_EXECUTOR_MEMORY=100g
-
-# Basic validation
-if [ -z "$RHO" ]; then
-  echo "[ERROR] Missing arguments. Expected 8 positional args: dataset dim eps minPts numPartitions expDir out rho"; exit 1; fi
 
 # Show allocation summary
 echo "[ORCH] JobID=$SLURM_JOB_ID Nodes=$SLURM_JOB_NODELIST NNodes=$SLURM_NNODES NTasks=$SLURM_NTASKS Cores/Task=$SLURM_CPUS_PER_TASK"
@@ -36,7 +32,7 @@ fi
 # Launch one task per node (task layout already allocated). Use --label for clearer logs.
 # Forward positional args.
 set -e
-bash run_inner.sh "$DATASET" "$DIM" "$EPS" "$MINPTS" "$NUM_PARTITIONS" "$EXP_DIR" "$NUM_PIVOT" "$NUM_PIVOT"
+bash run_inner.sh "$DATASET" "$DIM" "$EPS" "$MINPTS" "$NUM_PARTITIONS" "$EXP_DIR" "$NUM_PIVOT" "$SAMPLING_DENSITY"
 rc=$?
 set +e
 echo "[ORCH] srun completed rc=$rc"

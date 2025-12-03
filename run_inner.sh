@@ -1,8 +1,4 @@
 #!/bin/bash
-# Inner distributed script: executed once per Slurm task via srun from run.slurm
-# Arguments: dataset dim eps minPts numPartitions expDir out rho
-# Delegated teardown: we do NOT explicitly stop master/worker; Slurm will clean leftover daemons when tasks exit.
-
 module purge
 module load openjdk/21.0.2
 

@@ -6,8 +6,8 @@ EPS=${3}
 MINPTS=${4}
 NUM_PARTITIONS=${5}
 EXP_DIR=${6}
-NUM_PIVOT=2*$DIM
-SAMPLING_DENSITY=0.0075
+NUM_PIVOT=$((2 * DIM))
+SAMPLING_DENSITY=0.001
 
 # Check if all arguments are provided
 if [ -z "$DATASET" ] || [ -z "$DIM" ] || [ -z "$EPS" ] || [ -z "$MINPTS" ] || [ -z "$NUM_PARTITIONS" ] || [ -z "$EXP_DIR" ]; then
