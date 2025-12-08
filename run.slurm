@@ -3,6 +3,7 @@
 #SBATCH --nodes=4
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=16
+#SBATCH --ntasks-per-node=1
 #SBATCH --output=dbscan-ms_output_%j.txt
 #SBATCH --time=05:00:00
 #SBATCH --mail-user=siepef@uni-marburg.de
@@ -17,9 +18,6 @@ module load openjdk/21.0.2
 
 # Capture arguments to forward to inner script
 DATASET=$1; DIM=$2; EPS=$3; MINPTS=$4; NUM_PARTITIONS=$5; EXP_DIR=$6; NUM_PIVOT=$7; SAMPLING_DENSITY=$8
-
-# Set spark env
-SPARK_EXECUTOR_MEMORY=100g
 
 # Show allocation summary
 echo "[ORCH] JobID=$SLURM_JOB_ID Nodes=$SLURM_JOB_NODELIST NNodes=$SLURM_NNODES NTasks=$SLURM_NTASKS Cores/Task=$SLURM_CPUS_PER_TASK"

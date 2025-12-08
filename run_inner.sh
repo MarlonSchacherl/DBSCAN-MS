@@ -23,43 +23,60 @@ export SPARK_MASTER_PORT SPARK_UI_PORT SPARK_MASTER_HOST="$MASTER_NODE_HOSTNAME"
 
 echo "[CONFIG] Ports: master=$SPARK_MASTER_PORT ui=$SPARK_UI_PORT rc=$RC_PORT"
 
-# Memory / cores from Slurm
-if [ -n "$SLURM_MEM_PER_NODE" ]; then export SPARK_WORKER_MEMORY="${SLURM_MEM_PER_NODE}m"; fi
-export SPARK_WORKER_CORES=${SLURM_CPUS_PER_TASK:-$SLURM_CPUS_ON_NODE}
+# Simplified static executor/driver sizing (overridable via environment)
+# Environment matches: 4 Slurm nodes, each with 16 CPUs and 128GB memory
+# We'll use a static layout but reserve some resources on the master node (rank 0)
+# to ensure the master and the client driver have breathing room.
+# NUM_EXECUTORS: number of executor instances (default 15 -> 3 on master + 4 on each other node)
+# EXECUTOR_CORES: cores per executor (default 4)
+# EXECUTOR_MEMORY: memory per executor (default 24g)
+# DRIVER_CORES / DRIVER_MEMORY: driver resources (default 2 cores, 16g)
+# SPARK_DEFAULT_PARALLELISM: if unset, computed as min(max(4, 2 * total_executor_cores), 500)
+NUM_EXECUTORS=${NUM_EXECUTORS:-15}
+EXECUTOR_CORES=${EXECUTOR_CORES:-4}
+EXECUTOR_MEMORY=${EXECUTOR_MEMORY:-24g}
+DRIVER_CORES=${DRIVER_CORES:-2}
+DRIVER_MEMORY=${DRIVER_MEMORY:-16g}
 
-# Executor sizing
-if [ -n "$SLURM_MEM_PER_NODE" ]; then
-  TOTAL_MEM_MB=$SLURM_MEM_PER_NODE
-  EXECUTOR_MEM_MB=$(( TOTAL_MEM_MB * 80 / 100 ))
-  [ $EXECUTOR_MEM_MB -lt 1024 ] && EXECUTOR_MEM_MB=1024
-  DEFAULT_EXECUTOR_MEMORY="${EXECUTOR_MEM_MB}m"
-else
-  DEFAULT_EXECUTOR_MEMORY="8g"
+# Node hardware (static, matches your Slurm allocation)
+NODE_CPUS=16
+NODE_MEM_GB=128
+
+# Default worker settings (non-master nodes)
+SPARK_WORKER_CORES=${SPARK_WORKER_CORES:-$NODE_CPUS}
+SPARK_WORKER_MEMORY=${SPARK_WORKER_MEMORY:-${NODE_MEM_GB}g}
+
+# If this process is the master (GLOBAL_RANK==0) reduce worker resources
+# to reserve capacity for the master process and the driver that will run here.
+if [ "${GLOBAL_RANK:-0}" -eq 0 ]; then
+  # Reserve driver cores + 1 spare for master/OS
+  RESERVED_CORES=$(( DRIVER_CORES + 1 ))
+  # Ensure positive result
+  SPARK_WORKER_CORES=$(( NODE_CPUS - RESERVED_CORES ))
+  if [ $SPARK_WORKER_CORES -lt 1 ]; then SPARK_WORKER_CORES=1; fi
+
+  # Parse numeric part of DRIVER_MEMORY (strip non-digits)
+  DRIVER_MEM_NUM=$(echo "$DRIVER_MEMORY" | sed 's/[^0-9]*//g')
+  if [ -z "$DRIVER_MEM_NUM" ]; then DRIVER_MEM_NUM=0; fi
+  # Reserve driver memory + ~4GB for master/OS overhead
+  RESERVED_MEM_GB=$(( DRIVER_MEM_NUM + 4 ))
+  WORKER_MEM_GB=$(( NODE_MEM_GB - RESERVED_MEM_GB ))
+  if [ $WORKER_MEM_GB -lt 1 ]; then WORKER_MEM_GB=1; fi
+  SPARK_WORKER_MEMORY="${WORKER_MEM_GB}g"
 fi
-SPARK_EXECUTOR_MEMORY=${SPARK_EXECUTOR_MEMORY:-$DEFAULT_EXECUTOR_MEMORY}
-SPARK_EXECUTOR_CORES=${SPARK_EXECUTOR_CORES:-$SPARK_WORKER_CORES}
-DRIVER_MEMORY=${DRIVER_MEMORY:-8g}
 
-# Optional splitting
-if [ "${AUTO_EXECUTOR_SPLIT:-0}" = "1" ]; then
-  TARGET_CORES_PER_EXEC=${TARGET_CORES_PER_EXEC:-8}
-  if [ $TARGET_CORES_PER_EXEC -lt $SPARK_WORKER_CORES ]; then
-    SPARK_EXECUTOR_CORES=$TARGET_CORES_PER_EXEC
-    EXECUTORS_PER_WORKER=$(( SPARK_WORKER_CORES / SPARK_EXECUTOR_CORES ))
-    [ $EXECUTORS_PER_WORKER -lt 1 ] && EXECUTORS_PER_WORKER=1
-    if [ -n "$SLURM_MEM_PER_NODE" ]; then
-      PER_EXEC_MB=$(( (SLURM_MEM_PER_NODE * 80 / 100) / EXECUTORS_PER_WORKER ))
-      [ $PER_EXEC_MB -lt 1024 ] && PER_EXEC_MB=1024
-      SPARK_EXECUTOR_MEMORY="${PER_EXEC_MB}m"
-    fi
-    SPARK_EXECUTOR_INSTANCES=$(( EXECUTORS_PER_WORKER * NUM_TASKS ))
-    echo "[TUNING] Split executorsPerWorker=$EXECUTORS_PER_WORKER instances=$SPARK_EXECUTOR_INSTANCES coresPerExec=$SPARK_EXECUTOR_CORES memPerExec=$SPARK_EXECUTOR_MEMORY"
-  fi
-fi
+# Keep executor-facing variables (used for spark-submit)
+SPARK_EXECUTOR_CORES=${SPARK_EXECUTOR_CORES:-$EXECUTOR_CORES}
+SPARK_EXECUTOR_MEMORY=${SPARK_EXECUTOR_MEMORY:-$EXECUTOR_MEMORY}
+SPARK_EXECUTOR_INSTANCES=${SPARK_EXECUTOR_INSTANCES:-$NUM_EXECUTORS}
 
+# Compute a sensible default for spark.default.parallelism when not provided
 if [ -z "$SPARK_DEFAULT_PARALLELISM" ]; then
-  if [ -n "$SPARK_EXECUTOR_INSTANCES" ]; then TOTAL_CORES=$(( SPARK_EXECUTOR_CORES * SPARK_EXECUTOR_INSTANCES )); else TOTAL_CORES=$(( SPARK_EXECUTOR_CORES * NUM_TASKS )); fi
-  SPARK_DEFAULT_PARALLELISM=$(( TOTAL_CORES * 2 ))
+  TOTAL_CORES=$(( NUM_EXECUTORS * EXECUTOR_CORES ))
+  PAR=$(( TOTAL_CORES * 2 ))
+  if [ $PAR -lt 4 ]; then PAR=4; fi
+  if [ $PAR -gt 500 ]; then PAR=500; fi
+  SPARK_DEFAULT_PARALLELISM=$PAR
 fi
 
 wait_for_master() {
@@ -99,10 +116,14 @@ if [ "$GLOBAL_RANK" -eq 0 ]; then
     --master "spark://$MASTER_NODE_HOSTNAME:$SPARK_MASTER_PORT" \
     --deploy-mode client \
     --class app.Main \
+    --num-executors "$NUM_EXECUTORS" \
+    --executor-cores "$EXECUTOR_CORES" \
+    --executor-memory "$EXECUTOR_MEMORY" \
+    --driver-cores "$DRIVER_CORES" \
+    --driver-memory "$DRIVER_MEMORY" \
     --conf spark.executor.memoryOverhead=2048 \
-    --conf spark.driver.memory=$DRIVER_MEMORY \
-    --conf spark.executor.memory=$SPARK_EXECUTOR_MEMORY \
     --conf spark.driver.maxResultSize=24g \
+    --conf spark.default.parallelism="$SPARK_DEFAULT_PARALLELISM" \
     /home/siepef/code/DBSCAN-MS/target/scala-2.13/dbscan_ms.jar \
     "$DATASET" "$EPS" "$MINPTS" "$NUM_PIVOT" "$NUM_PARTITIONS" "$SAMPLING_DENSITY" 42 "$EXP_DIR" false false false
   SUBMIT_RC=$?
