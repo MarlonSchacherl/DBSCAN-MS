@@ -153,7 +153,7 @@ object DBSCAN_MS {
           numberOfPartitions: Int,
           samplingDensity: Double = 0.001,
           seed: Int = 42): RDD[DataPoint] = {
-    require(numberOfPartitions < 4096, "Number of partitions must be < 2^12 (4096) because of how clusters are labeled.")
+    require(numberOfPartitions < 16383, "Number of partitions must be < 2^14 - 1 (16383) because of how clusters are labeled.")
 
     val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
     val clusteredRDD = dbscan_ms(sc, rdd, epsilon, minPts, seed, numberOfPivots, numberOfPartitions, sampledData)
@@ -200,7 +200,7 @@ object DBSCAN_MS {
     // Filter duplicates and
     // Merge local clusters into global clusters. If one cluster sits entirely in one partition,
     // we give it a unique ID by encoding the partition number in the high bits.
-    val bitOffset = 19
+    val bitOffset = 17
     clusteredRDD.filter(_.mask != MASK.MARGIN_OUTER).map(point => {
       bcGlobalClusterMappings.value.get((point.partition, point.localCluster)) match {
         case Some(cluster) => point.globalCluster = cluster

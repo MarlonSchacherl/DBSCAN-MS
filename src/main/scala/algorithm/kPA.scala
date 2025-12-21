@@ -3,6 +3,8 @@ package algorithm
 import model.{DataPoint, MASK, Subspace}
 import utils.MapPointToVectorSpace
 
+import scala.util.control.Breaks.{break, breakable}
+
 object kPA {
   /**
    * Computes the partitions for a given point using the kPA algorithm.
@@ -19,17 +21,20 @@ object kPA {
     val newPoint: DataPoint = if (point.vectorRep == null) point.withVectorRep(MapPointToVectorSpace(point, pivots)) else point
 
     var returnList = List[(Int, DataPoint)]()
-    for (i <- subspaces.indices) {
-      val subspace = subspaces(i)
-      if (inside(newPoint, subspace.outer)) {
-        val mask = (inside(newPoint, subspace.bbCoords), inside(newPoint, subspace.inner)) match {
-          case (true, true)  => MASK.SPACE_INNER
-          case (true, false) => MASK.MARGIN_INNER
-          case (false, _)    => MASK.MARGIN_OUTER
+    breakable {
+      for (i <- subspaces.indices) {
+        val subspace = subspaces(i)
+        if (inside(newPoint, subspace.outer)) {
+          val mask = (inside(newPoint, subspace.bbCoords), inside(newPoint, subspace.inner)) match {
+            case (true, true) => MASK.SPACE_INNER
+            case (true, false) => MASK.MARGIN_INNER
+            case (false, _) => MASK.MARGIN_OUTER
+          }
+          val pointWithMask = newPoint.withMask(mask)
+          pointWithMask.partition = i
+          returnList = (i, pointWithMask) :: returnList
+          if (mask == MASK.SPACE_INNER) break
         }
-        val pointWithMask = newPoint.withMask(mask)
-        pointWithMask.partition = i
-        returnList = (i, pointWithMask) :: returnList
       }
     }
 
