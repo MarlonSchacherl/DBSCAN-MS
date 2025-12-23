@@ -11,15 +11,15 @@ object MapPointToVectorSpace {
    * @param pivots The pivots defining the vector space.
    * @return The coordinates of the data point in the vector space.
    */
-  def apply(point: DataPoint, pivots: Array[DataPoint]): Array[Float] = {
+  def apply[A](point: DataPoint[A], pivots: Array[DataPoint[A]])(implicit m: Metric[A]): Array[Float] = {
     pivots.map(pivot => pivot.distance(point))
   }
 
-  def apply(point: DataPoint, pivots: List[DataPoint]): List[Float] = {
+  def apply[A](point: DataPoint[A], pivots: List[DataPoint[A]])(implicit m: Metric[A]): List[Float] = {
     pivots.map(pivot => pivot.distance(point))
   }
 
-  def apply(point: DataPoint, pivots: Array[DataPoint], pointer: Int): Array[Float] = {
+  def apply[A](point: DataPoint[A], pivots: Array[DataPoint[A]], pointer: Int)(implicit m: Metric[A]): Array[Float] = {
     var i = 0
     val n = pointer
     val result = new Array[Float](pivots.length)

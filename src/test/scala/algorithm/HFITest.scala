@@ -1,47 +1,47 @@
 package algorithm
 
+import algorithm.LineParsers.CsvFloatVectorParser
 import model.DataPoint
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
-import utils.EuclideanDistance.distance
+import utils.DistanceMeasures.euclidean
+import utils.Metrics.EuclideanArrayFloat
 
 class HFITest() extends AnyFunSuite {
+  implicit val metric: utils.Metric[Array[Float]] = EuclideanArrayFloat
   // Test HFI
   test("Basic HFI tests") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(1000)(DataPoint(Array.fill(5)(rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint[Array[Float]]] =
+      Array.tabulate(1000)(i => DataPoint(Array.fill(5)(rng.nextFloat()), id = i))
 
     val numberOfPivots = 10
-    val pivots: Array[DataPoint] = HFI(dataset, numberOfPivots, seed)
+    val pivots: Array[DataPoint[Array[Float]]] = HFI(dataset, numberOfPivots, seed)
 
-    // Check that the correct number of pivots is returned
     assert(pivots.length == numberOfPivots, s"Expected $numberOfPivots pivots, but got ${pivots.length}")
 
-    // Check that all pivots are from the original dataset
     pivots.foreach { pivot =>
       assert(dataset.contains(pivot), s"Pivot ${pivot.data.mkString(",")} is not in the original dataset")
     }
 
-    // Check that all pivots are unique
     assert(pivots.distinct.length == pivots.length, "Pivots are not unique")
-
-
   }
 
   test("Semantic HFI test") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(50)(DataPoint(Array.fill(2)(rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint[Array[Float]]] =
+      Array.tabulate(50)(i => DataPoint(Array.fill(2)(rng.nextFloat()), id = i))
 
     val numberOfPivots = 3
-    val pivots: Array[DataPoint] = HFI(dataset, numberOfPivots, seed)
+    val pivots: Array[DataPoint[Array[Float]]] = HFI(dataset, numberOfPivots, seed)
 
-    // Print the selected pivots for manual inspection
     println("Selected pivots:")
     pivots.foreach(p => println(p.data.mkString("(", ", ", ")")))
   }
+
 
 
   // Test newPivotSetPrecision

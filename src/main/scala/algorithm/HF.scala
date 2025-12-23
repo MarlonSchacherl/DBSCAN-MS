@@ -1,6 +1,7 @@
 package algorithm
 
 import model.DataPoint
+import utils.Metric
 
 import scala.util.Random
 
@@ -12,19 +13,19 @@ object HF {
    * @param seed Random seed for reproducibility.
    * @return An array of selected pivot candidates.
    */
-  def apply(dataset: Array[DataPoint],
+  def apply[A](dataset: Array[DataPoint[A]],
             numberOfPivotCandidates: Int = 40,
-            seed: Int): Array[DataPoint] = {
+            seed: Int)(implicit m: Metric[A]): Array[DataPoint[A]] = {
     execute(dataset, numberOfPivotCandidates, seed)
   }
 
-  def execute(dataset: Array[DataPoint],
+  def execute[A](dataset: Array[DataPoint[A]],
                             numberOfPivotCandidates: Int,
-                            seed: Int): Array[DataPoint] = {
+                            seed: Int)(implicit m: Metric[A]): Array[DataPoint[A]] = {
     require(dataset.length > numberOfPivotCandidates, "Number of pivot candidates must be smaller than the dataset size!")
 
     val rng = new Random(seed)
-    val pivotCandidates = new Array[DataPoint](numberOfPivotCandidates)
+    val pivotCandidates = new Array[DataPoint[A]](numberOfPivotCandidates)
     val startingPoint = dataset(rng.nextInt(dataset.length))
 
     pivotCandidates(0) = findFarthestPoint(dataset, startingPoint)
@@ -39,7 +40,7 @@ object HF {
 
     for (i <- 2 until numberOfPivotCandidates) {
       var minimalError = Float.MaxValue
-      var bestCandidate: DataPoint = null
+      var bestCandidate: DataPoint[A] = null
       for (j <- dataset.indices if !pivotCandidates.contains(dataset(j))) {
         val error = errors(j) + Math.abs(edge - dataset(j).distance(pivotCandidates(i - 1)))
         errors(j) = error
@@ -59,10 +60,11 @@ object HF {
    * @param referencePoint The reference point.
    * @return The farthest point from the reference point in the dataset.
    */
-  private[algorithm] def findFarthestPoint(dataset: Array[DataPoint], referencePoint: DataPoint): DataPoint = {
+  private[algorithm] def findFarthestPoint[A](dataset: Array[DataPoint[A]], referencePoint: DataPoint[A])
+                                             (implicit m: Metric[A]): DataPoint[A] = {
 
     var maxDistance = Float.MinValue
-    var farthestPoint: DataPoint = null
+    var farthestPoint: DataPoint[A] = null
 
     for (point <- dataset if point != referencePoint) {
       val distance = referencePoint.distance(point)

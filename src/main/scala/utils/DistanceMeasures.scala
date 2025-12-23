@@ -1,8 +1,8 @@
 package utils
 
 
-object EuclideanDistance {
-  final def distance(a: Array[Float], b: Array[Float]): Float = {
+object DistanceMeasures {
+  final def euclidean(a: Array[Float], b: Array[Float]): Float = {
     var i = 0
     var acc = 0.0f
     val n = a.length

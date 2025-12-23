@@ -9,7 +9,7 @@ import utils.Quickselect
  * @param bbCoords The bounding box coordinates for each dimension, represented as tuples of (min, max).
  * @param epsilon  The search radius.
  */
-case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], epsilon: Float) {
+case class Subspace[A](points: Array[DataPoint[A]], bbCoords: Array[(Float, Float)], epsilon: Float) {
   val outer: Array[(Float, Float)] = this.outerSubspace(epsilon)
   val inner: Array[(Float, Float)] = this.innerSubspace(epsilon)
 
@@ -19,7 +19,7 @@ case class Subspace (points: Array[DataPoint], bbCoords: Array[(Float, Float)], 
    * @param dimension The dimension along which to split the subspace.
    * @return A tuple containing the two resulting subspaces.
    */
-  def split(dimension: Int): (Subspace, Subspace) = {
+  def split(dimension: Int): (Subspace[A], Subspace[A]) = {
     val median = Quickselect.select(points.map(_.vectorRep(dimension)), points.length / 2)
     val (leftPoints, rightPoints) = points.partition(_.vectorRep(dimension) < median)
     val leftBB = bbCoords.updated(dimension, (bbCoords(dimension)._1, median))

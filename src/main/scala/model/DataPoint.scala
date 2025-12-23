@@ -1,12 +1,8 @@
 package model
 
-import model.DataPoint.dist
-import utils.EuclideanDistance
+import utils.Metric
 
-import java.util
-
-
-case class DataPoint(data: Array[Float],
+final case class DataPoint[A](data: A,
                      id: Long,
                      var label: Int = LABEL.NOISE,
                      var visited: Boolean = false,
@@ -16,21 +12,21 @@ case class DataPoint(data: Array[Float],
                      var partition: Int = -1,
                      var globalCluster: Int = -1) {
   override def equals(obj: Any): Boolean = obj match {
-    case that: DataPoint => this.id == that.id && this.partition == that.partition && (this.data sameElements that.data)
+    case that: DataPoint[_] => this.id == that.id && this.partition == that.partition
     case _ => false
   }
 
   override def hashCode(): Int = {
     val prime = 31
-    prime * (prime * (prime + util.Arrays.hashCode(data)) + partition) + id.toInt
+    prime * (prime + partition) + id.toInt
   }
 
-  override def toString: String = s"DataPoint(${data.mkString(", ")}, id=$id, label=$label, visited=$visited, " +
+  override def toString: String = s"DataPoint($data, id=$id, label=$label, visited=$visited, " +
                                   s"vectorRep=${if (vectorRep != null) vectorRep.mkString(", ")}, " +
                                   s"mask=$mask, cluster=$localCluster, partition=$partition, globalCluster=$globalCluster)"
 
-  final def distance(other: DataPoint): Float = {
-    dist(this.data, other.data)
+  final def distance(other: DataPoint[A])(implicit m: Metric[A]): Float = {
+    m.distance(this.data, other.data)
   }
 
   /**
@@ -45,7 +41,7 @@ case class DataPoint(data: Array[Float],
    *
    * @note '''We're only making shallow copies, therefore assuming data won't be changed after withVectorRep is called'''
    */
-  def withVectorRep(vectorRep: Array[Float]): DataPoint = this.copy(vectorRep = vectorRep)
+  def withVectorRep(vectorRep: Array[Float]): DataPoint[A] = this.copy(vectorRep = vectorRep)
 
   /**
    * Copies this DataPoint and sets the `margin` mask.
@@ -53,9 +49,6 @@ case class DataPoint(data: Array[Float],
    *
    * @note '''We're only making shallow copies, therefore assuming data & vectorRep won't be changed after withMask is called'''
    */
-  def withMask(mask: Int): DataPoint = this.copy(mask = mask)
+  def withMask(mask: Int): DataPoint[A] = this.copy(mask = mask)
 }
 
-object DataPoint {
-  val dist: (Array[Float], Array[Float]) => Float = EuclideanDistance.distance
-}

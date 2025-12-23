@@ -1,7 +1,7 @@
 package algorithm
 
 import model.DataPoint
-import utils.MapPointToVectorSpace
+import utils.{MapPointToVectorSpace, Metric}
 
 import scala.collection.parallel.CollectionConverters.IterableIsParallelizable
 import scala.util.Random
@@ -17,15 +17,15 @@ object HFI {
    * @param seed Random seed for reproducibility.
    * @return An array of selected pivots.
    */
-  def apply(dataset: Array[DataPoint],
+  def apply[A](dataset: Array[DataPoint[A]],
             numberOfPivots: Int,
-            seed: Int = Random.nextInt()): Array[DataPoint] = {
+            seed: Int = Random.nextInt())(implicit m: Metric[A]): Array[DataPoint[A]] = {
     execute(dataset, numberOfPivots, seed)
   }
 
-  def execute(dataset: Array[DataPoint],
+  def execute[A](dataset: Array[DataPoint[A]],
               numberOfPivots: Int,
-              seed: Int = Random.nextInt()): Array[DataPoint] = {
+              seed: Int = Random.nextInt())(implicit m: Metric[A]): Array[DataPoint[A]] = {
     require(dataset.nonEmpty, "Dataset must not be empty")
     require(numberOfPivots >= 2, "Number of pivots must be at least 2")
     require(numberOfPivots <= dataset.length, "Number of pivots must not exceed dataset size")
@@ -37,9 +37,9 @@ object HFI {
     val candidates = HF(dataset, numberOfPivotCandidates, seed)
     val distanceMatrix = computeDistanceMatrix(dataset)
 
-    val pivots = new Array[DataPoint](numberOfPivots)
+    val pivots = new Array[DataPoint[A]](numberOfPivots)
     for (i <- 0 until numberOfPivots) {
-      def precisionWithTrial(trial: DataPoint): Float = {
+      def precisionWithTrial(trial: DataPoint[A]): Float = {
         val pivCopy = pivots.clone()
         pivCopy(i) = trial
         newPivotSetPrecision(dataset, distanceMatrix, pivCopy, i)
@@ -72,10 +72,10 @@ object HFI {
    * @param pivots The pivots used for mapping the data points to the vector space. The last pivot is the new pivot candidate.
    * @return The average precision of the pivot selection.
    */
-  private[algorithm] def newPivotSetPrecision(dataset: Array[DataPoint],
+  private[algorithm] def newPivotSetPrecision[A](dataset: Array[DataPoint[A]],
                                               distanceMatrix: Array[Array[Float]],
-                                              pivots: Array[DataPoint],
-                                              pointer: Int): Float = {
+                                              pivots: Array[DataPoint[A]],
+                                              pointer: Int)(implicit m: Metric[A]): Float = {
     val opCardinality = dataset.length * (dataset.length - 1) / 2.0f
     val mappedDataset = dataset.map(MapPointToVectorSpace(_, pivots, pointer))
     var sum = 0.0f
@@ -119,7 +119,7 @@ object HFI {
    * @param dataset The input array of DataPoint objects for which the pairwise distances will be computed.
    * @return The upper triangle of the pairwise distance matrix.
    */
-  def computeDistanceMatrix(dataset: Array[DataPoint]): Array[Array[Float]] = {
+  def computeDistanceMatrix[A](dataset: Array[DataPoint[A]])(implicit m: Metric[A]): Array[Array[Float]] = {
     val distanceMatrix: Array[Array[Float]] = new Array[Array[Float]](dataset.length)
     for (i <- dataset.indices) {
       distanceMatrix(i) = new Array[Float](dataset.length - i - 1)

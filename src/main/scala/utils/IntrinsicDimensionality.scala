@@ -9,11 +9,11 @@ object IntrinsicDimensionality {
    * @param sampleDataset    The dataset consisting of an array of DataPoint objects.
    * @return The estimated intrinsic dimensionality of the dataset.
    */
-  def apply(sampleDataset: Array[DataPoint]): Double = {
+  def apply[A](sampleDataset: Array[DataPoint[A]])(implicit m: Metric[A]): Double = {
     execute(sampleDataset)
   }
 
-  final def execute(sampleDataset: Array[DataPoint]): Double = {
+  final def execute[A](sampleDataset: Array[DataPoint[A]])(implicit m: Metric[A]): Double = {
     val distances: Array[Double] = new Array[Double]((sampleDataset.length * (sampleDataset.length - 1))/ 2)
     var pointer = 0
     for (i <- sampleDataset.indices) {

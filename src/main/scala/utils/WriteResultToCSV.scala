@@ -6,7 +6,7 @@ import model.DataPoint
 import java.io.{FileWriter, BufferedWriter}
 
 case object WriteResultToCSV {
-  def apply(result: Array[DataPoint], filename: String): Unit = {
+  def apply(result: Array[DataPoint[Array[Float]]], filename: String): Unit = {
     val file = new FileWriter(filename)
     val writer = new BufferedWriter(file)
     val output = result.map(p => (p.data, p.globalCluster))

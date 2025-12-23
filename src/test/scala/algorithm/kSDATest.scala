@@ -2,14 +2,16 @@ package algorithm
 
 import model.DataPoint
 import org.scalatest.funsuite.AnyFunSuite
+import utils.Metrics.EuclideanArrayFloat
 
 import scala.util.Random
 
 class kSDATest extends AnyFunSuite {
+  implicit val metric: utils.Metric[Array[Float]] = EuclideanArrayFloat
   val seed = 42
   test("kSDA.divideSpace returns correct number of partitions") {
-    val dataset = (1 to 1000).map { _ =>
-      DataPoint(Array(Random.nextFloat(), Random.nextFloat()), 0)
+    val dataset = (1 to 1000).map { id =>
+      DataPoint(Array(Random.nextFloat(), Random.nextFloat()), id)
     }.toArray
 
     val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 10, seed = seed), numberOfPartitions = 10, epsilon = 0.02f)
@@ -17,19 +19,20 @@ class kSDATest extends AnyFunSuite {
   }
 
   test("Each partition bounding box contains only valid coordinates") {
-    val dataset = (1 to 300).map { _ =>
-        DataPoint(Array(Random.nextFloat(), Random.nextFloat()), 0)
-      }.toArray
+    val dataset = (1 to 300).map { id =>
+      DataPoint(Array(Random.nextFloat(), Random.nextFloat()), id)
+    }.toArray
 
-      val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 5, seed = seed), numberOfPartitions = 5, epsilon = 0.02f)
+    val partitions = kSDA(dataset, HFI(dataset, numberOfPivots = 5, seed = seed), numberOfPartitions = 5, epsilon = 0.02f)
 
-      for (partition <- partitions) {
-        assert(partition.bbCoords.length == dataset.head.dimensions)
-        for (i <- partition.bbCoords) {
-          if (i._1.isFinite && i._2.isFinite) assert(i._1.isFinite && i._2.isFinite && i._1 <= i._2)
-        }
+    for (partition <- partitions) {
+      assert(partition.bbCoords.length == dataset.head.dimensions)
+      for (i <- partition.bbCoords) {
+        if (i._1.isFinite && i._2.isFinite) assert(i._1.isFinite && i._2.isFinite && i._1 <= i._2)
       }
+    }
   }
+
 
   /*
   test("Partitioning with 1 partition returns full bounding box") {

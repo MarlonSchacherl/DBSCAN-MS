@@ -1,7 +1,7 @@
 package algorithm
 
 import model.DataPoint
-import utils.TinyArrayBuffer
+import utils.{Metric, TinyArrayBuffer}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -16,11 +16,11 @@ object SWNQA {
    *         of the respective data points in the input array (Int), ordered the same way as the input.
    * @note Data points must be sorted along dimension before passing them to this function!
    */
-  def apply(points: Array[DataPoint], dimension: Int, epsilon: Float, minPts: Int): Array[Array[Int]] = {
+  def apply[A](points: Array[DataPoint[A]], dimension: Int, epsilon: Float, minPts: Int)(implicit m: Metric[A]): Array[Array[Int]] = {
     execute(points, dimension, epsilon, minPts)
   }
 
-  def execute(points: Array[DataPoint], dimension: Int, epsilon: Float, minPts: Int): Array[Array[Int]] = {
+  def execute[A](points: Array[DataPoint[A]], dimension: Int, epsilon: Float, minPts: Int)(implicit m: Metric[A]): Array[Array[Int]] = {
     val neighbourhoods: Array[TinyArrayBuffer] = Array.fill(points.length)(new TinyArrayBuffer(32))
     val srLowerBound: Array[Float] = new Array[Float](points.head.dimensions)
     val srUpperBound: Array[Float] = new Array[Float](points.head.dimensions)
@@ -49,7 +49,7 @@ object SWNQA {
     neighbourhoods.map(_.toArray)
   }
 
-  final def inSearchRegion(srLowerBound: Array[Float], srUpperBound: Array[Float], point: DataPoint): Boolean = {
+  final def inSearchRegion[A](srLowerBound: Array[Float], srUpperBound: Array[Float], point: DataPoint[A]): Boolean = {
     var i = 0
     val n = point.dimensions
     while (i < n) {

@@ -12,11 +12,11 @@ object localDBSCAN {
    * @param minPts The minimum number of neighbours for a core point.
    * @return The clustered dataset.
    */
-  def apply(points: Array[DataPoint], neighbourhoods: Array[Array[Int]], minPts: Int): Array[DataPoint] = {
+  def apply[A](points: Array[DataPoint[A]], neighbourhoods: Array[Array[Int]], minPts: Int): Array[DataPoint[A]] = {
     execute(points, neighbourhoods, minPts)
   }
 
-  def execute(points: Array[DataPoint], neighbourhoods: Array[Array[Int]], minPts: Int): Array[DataPoint] = {
+  def execute[A](points: Array[DataPoint[A]], neighbourhoods: Array[Array[Int]], minPts: Int): Array[DataPoint[A]] = {
     var currentCluster = 0
     for (i <- points.indices) {
       val point = points(i)

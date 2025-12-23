@@ -30,7 +30,7 @@ object GetResultLabels {
    * @return                 An array of integer cluster labels corresponding to the clustered points,
    *                         ordered and remapped according to the provided parameters.
    */
-  def apply(result: Array[DataPoint],
+  def apply(result: Array[DataPoint[Array[Float]]],
             remappedLabels: Boolean = true,
             originalDataset: Option[Array[Array[Float]]] = None,
             sorted: Boolean = false): Array[Int] = {
@@ -38,7 +38,7 @@ object GetResultLabels {
       case None => true
       case _ => false}), "Labels can only be ordered according to either the original dataset, or sorted, not both")
 
-    val r: Array[DataPoint] = if (originalDataset.isDefined) {
+    val r: Array[DataPoint[Array[Float]]] = if (originalDataset.isDefined) {
       val orderMap = originalDataset.get.map(java.util.Arrays.hashCode).zipWithIndex.toMap
       val indexedResult = result.map(p => (p, orderMap(java.util.Arrays.hashCode(p.data))))
       val sortedResult = indexedResult.sortBy(_._2)
@@ -66,7 +66,7 @@ object GetResultLabels {
    *
    * @param result The clustered dataset as an array of [[DataPoint]]s.
    */
-  def printClusters(result: Array[DataPoint]): Unit = {
+  def printClusters(result: Array[DataPoint[Array[Float]]]): Unit = {
     val predLabels = GetResultLabels(result)
     val groupedLabels = predLabels.groupBy(identity)
     groupedLabels.foreach(x => log.debug(s"Cluster ${x._1} has ${x._2.length} points"))

@@ -3,11 +3,13 @@ package bigdata
 import algorithm.HFI
 import model.DataPoint
 import org.scalatest.funsuite.AnyFunSuite
-import utils.EuclideanDistance.distance
+import utils.DistanceMeasures.euclidean
+import utils.Metrics.EuclideanArrayFloat
 
 import scala.util.Random
 
 class HFIPerformance extends AnyFunSuite{
+  implicit val metric: utils.Metric[Array[Float]] = EuclideanArrayFloat
   test("Performance test") {
     val seed = 42
     val rng = new Random(seed)

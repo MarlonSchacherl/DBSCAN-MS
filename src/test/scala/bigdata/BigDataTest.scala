@@ -1,11 +1,15 @@
 package bigdata
 
 import algorithm.DBSCAN_MS
+import algorithm.LineParsers.CsvFloatVectorParser
 import org.scalatest.funsuite.AnyFunSuite
 import testutils.{GetResultLabels, TestSparkSession}
+import utils.Metrics.EuclideanArrayFloat
 
 
 class BigDataTest extends AnyFunSuite{
+  implicit val metric: utils.Metric[Array[Float]] = EuclideanArrayFloat
+  implicit val parser: algorithm.LineParser[Array[Float]] = CsvFloatVectorParser
   // VM config: -Xmx32g
   test("densired_2") {
     val filepath = "data/densired_2.csv"

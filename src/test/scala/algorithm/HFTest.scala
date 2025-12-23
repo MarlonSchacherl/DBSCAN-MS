@@ -3,41 +3,46 @@ package algorithm
 import algorithm.HF.findFarthestPoint
 import model.DataPoint
 import org.scalatest.funsuite.AnyFunSuite
-import utils.EuclideanDistance.distance
+import utils.DistanceMeasures.euclidean
+import utils.Metrics.EuclideanArrayFloat
 
 import scala.util.Random
 
 class HFTest extends AnyFunSuite{
+  implicit val metric: utils.Metric[Array[Float]] = EuclideanArrayFloat
   // Test findFarthestPoint
   test("Test findFarthestPoint") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(50)(DataPoint(Array(rng.nextFloat(), rng.nextFloat(), rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint[Array[Float]]] =
+      Array.tabulate(50)(i => DataPoint(Array(rng.nextFloat(), rng.nextFloat(), rng.nextFloat()), id = i))
 
     val startingPoint = dataset(rng.nextInt(dataset.length))
     val farthestPoint = findFarthestPoint(dataset, startingPoint)
 
     dataset.foreach { point =>
-      assert(distance(startingPoint.data, farthestPoint.data) >= distance(startingPoint.data, point.data),
+      assert(euclidean(startingPoint.data, farthestPoint.data) >= euclidean(startingPoint.data, point.data),
         s"Farthest point ${farthestPoint.data.mkString(",")} is not actually the farthest from ${startingPoint.data.mkString(",")}")
     }
   }
 
 
+
   // Test HF
-  private def recalcErrors(pivots: Array[DataPoint]): Array[Float] = {
-    val edge = distance(pivots(0).data, pivots(1).data)
-    pivots.zipWithIndex.drop(2).map { case (a: DataPoint, i: Int) =>
-      pivots.take(i).map(b => Math.abs(edge - distance(a.data, b.data))).sum
+  private def recalcErrors(pivots: Array[DataPoint[Array[Float]]]): Array[Float] = {
+    val edge = euclidean(pivots(0).data, pivots(1).data)
+    pivots.zipWithIndex.drop(2).map { case (a: DataPoint[Array[Float]], i: Int) =>
+      pivots.take(i).map(b => Math.abs(edge - euclidean(a.data, b.data))).sum
     }
   }
 
   test("Basic HF functionality test in 2D") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(20)(DataPoint(Array.fill(2)(rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint[Array[Float]]] =
+      Array.tabulate(20)(i => DataPoint(Array.fill(2)(rng.nextFloat()), id = i))
 
-    val result: Array[DataPoint] = HF(dataset, 4, seed)
+    val result: Array[DataPoint[Array[Float]]] = HF(dataset, 4, seed)
 
     val errors = recalcErrors(result)
     assert(errors sameElements errors.sorted)
@@ -46,17 +51,19 @@ class HFTest extends AnyFunSuite{
   test("HF test in 20D") {
     val seed = 42
     val rng = new Random(seed)
-    val dataset: Array[DataPoint] = Array.fill(10000)(DataPoint(Array.fill(20)(rng.nextFloat()), id = 0))
+    val dataset: Array[DataPoint[Array[Float]]] =
+      Array.tabulate(10000)(i => DataPoint(Array.fill(20)(rng.nextFloat()), id = i))
 
-    val result: Array[DataPoint] = HF(dataset, 20, seed)
+    val result: Array[DataPoint[Array[Float]]] = HF(dataset, 20, seed)
     val errors = recalcErrors(result)
     assert(errors sameElements errors.sorted)
   }
 
+
   test("Detailed HF test") {
     val seed = 42
     val firstIntFromRNG = 5
-    val dataset: Array[DataPoint] = Array(
+    val dataset: Array[DataPoint[Array[Float]]] = Array(
       DataPoint(Array(0.7275637f, 0.054665208f), id = 0),
       DataPoint(Array(0.6832234f, 0.0479393f), id = 1),
       DataPoint(Array(0.3087194f, 0.9420735f), id = 2),
@@ -74,7 +81,7 @@ class HFTest extends AnyFunSuite{
       DataPoint(Array(0.17737848f, 0.15054744f), id = 14))
 
     val numberOfPivots = 5
-    val pivotCandidates: Array[DataPoint] = HF(dataset, numberOfPivots, seed)
+    val pivotCandidates: Array[DataPoint[Array[Float]]] = HF(dataset, numberOfPivots, seed)
 
 
     // Check that rng is in order and first pivot candidate is correct

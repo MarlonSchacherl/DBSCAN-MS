@@ -1,7 +1,7 @@
 package algorithm
 
 import model.{DataPoint, MASK, Subspace}
-import utils.MapPointToVectorSpace
+import utils.{MapPointToVectorSpace, Metric}
 
 import scala.util.control.Breaks.{break, breakable}
 
@@ -13,14 +13,14 @@ object kPA {
    * @param subspaces The subspaces to partition the point into.
    * @return A list of tuples containing the point and the partition index.
    */
-  def apply(point: DataPoint, pivots: Array[DataPoint], subspaces: Array[Subspace]): List[(Int, DataPoint)] = {
+  def apply[A](point: DataPoint[A], pivots: Array[DataPoint[A]], subspaces: Array[Subspace[A]])(implicit m: Metric[A]): List[(Int, DataPoint[A])] = {
     execute(point, pivots, subspaces)
   }
 
-  def execute(point: DataPoint, pivots: Array[DataPoint], subspaces: Array[Subspace]): List[(Int, DataPoint)] = {
-    val newPoint: DataPoint = if (point.vectorRep == null) point.withVectorRep(MapPointToVectorSpace(point, pivots)) else point
+  def execute[A](point: DataPoint[A], pivots: Array[DataPoint[A]], subspaces: Array[Subspace[A]])(implicit m: Metric[A]): List[(Int, DataPoint[A])] = {
+    val newPoint: DataPoint[A] = if (point.vectorRep == null) point.withVectorRep(MapPointToVectorSpace(point, pivots)) else point
 
-    var returnList = List[(Int, DataPoint)]()
+    var returnList = List[(Int, DataPoint[A])]()
     breakable {
       for (i <- subspaces.indices) {
         val subspace = subspaces(i)
@@ -43,13 +43,13 @@ object kPA {
 
 
   /**
-   * Checks if a point is inside a subspace.
+   * Checks if a point is inside a Subspace[A].
    * @param point The point to check.
-   * @param subspaceCoords The bounding box of the subspace.
-   * @return True if the point is inside the subspace, false otherwise.
+   * @param subspaceCoords The bounding box of the Subspace[A].
+   * @return True if the point is inside the Subspace[A], false otherwise.
    */
-  final def inside(point: DataPoint, subspaceCoords: Array[(Float, Float)]): Boolean = {
-    require(point.vectorRep.length == subspaceCoords.length, "Point and subspace must have the same dimension")
+  final def inside[A](point: DataPoint[A], subspaceCoords: Array[(Float, Float)]): Boolean = {
+    require(point.vectorRep.length == subspaceCoords.length, "Point and Subspace[A] must have the same dimension")
     val v = point.vectorRep
     var i = 0
     while (i < v.length) {

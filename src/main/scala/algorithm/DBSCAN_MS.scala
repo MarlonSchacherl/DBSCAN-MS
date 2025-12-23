@@ -1,15 +1,18 @@
 package algorithm
 
+import algorithm.LineParsers.CsvFloatVectorParser
 import metrics.MetricWriter
 import metrics.entity.{ClusterParameters, DatasetParameters, Measurement}
 import model.{DataPoint, LABEL, MASK}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{HashPartitioner, SparkContext, TaskContext}
-import utils.IntrinsicDimensionality
+import utils.{IntrinsicDimensionality, Metric}
+import utils.Metrics.EuclideanArrayFloat
 
 import java.nio.file.Path
 import java.time.LocalTime
+import scala.reflect.ClassTag
 
 object DBSCAN_MS {
   private val log = org.apache.log4j.LogManager.getLogger(DBSCAN_MS.getClass)
@@ -36,18 +39,18 @@ object DBSCAN_MS {
    * @return An array of [[DataPoint]] objects representing the clustered data.
    * @see [[run]] for the underlying algorithm.
    */
-  def runFromFile(spark: SparkSession,
-                  filepath: String,
-                  epsilon: Float,
-                  minPts: Int,
-                  numberOfPivots: Int,
-                  numberOfPartitions: Int,
-                  samplingDensity: Double = 0.001,
-                  seed: Int = 42,
-                  dataHasHeader: Boolean = false,
-                  dataHasRightLabel: Boolean = false): Array[DataPoint] = {
+  def runFromFile[A: ClassTag](spark: SparkSession,
+                     filepath: String,
+                     epsilon: Float,
+                     minPts: Int,
+                     numberOfPivots: Int,
+                     numberOfPartitions: Int,
+                     samplingDensity: Double = 0.001,
+                     seed: Int = 42,
+                     dataHasHeader: Boolean = false,
+                     dataHasRightLabel: Boolean = false)(implicit m: Metric[A], p: LineParser[A]): Array[DataPoint[A]] = {
     val sc = spark.sparkContext
-    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
+    val rdd = readData[A](sc, filepath, dataHasHeader, dataHasRightLabel).cache()
     val numPivots = if (numberOfPivots == -1) estimatePivotNumber(rdd, samplingDensity, seed) else numberOfPivots
 
     val start = System.nanoTime()
@@ -87,7 +90,7 @@ object DBSCAN_MS {
    * @param dataHasRightLabel  Indicates whether the input file contains ground truth labels for validation (default: false).
    * @see [[run]] for the underlying algorithm.
    */
-  def runWithoutCollect(spark: SparkSession,
+  def runWithoutCollect[A: ClassTag](spark: SparkSession,
                         filepath: String,
                         epsilon: Float,
                         minPts: Int,
@@ -97,9 +100,9 @@ object DBSCAN_MS {
                         seed: Int = 42,
                         metricsPath: String = "",
                         dataHasRightLabel: Boolean = false,
-                        dataHasHeader: Boolean = false): Unit = {
+                        dataHasHeader: Boolean = false)(implicit m: Metric[A], p: LineParser[A]): Unit = {
     val sc = spark.sparkContext
-    val rdd = readData(sc, filepath, dataHasHeader, dataHasRightLabel).cache()
+    val rdd = readData[A](sc, filepath, dataHasHeader, dataHasRightLabel).cache()
     val numPivots = if (numberOfPivots == -1) estimatePivotNumber(rdd, samplingDensity, seed) else numberOfPivots
     log.info(rdd.count() + " data points loaded")
 
@@ -145,14 +148,14 @@ object DBSCAN_MS {
    * @param seed               The random seed used for reproducibility of results. Default: `42`.
    * @return An RDD of [[DataPoint]] objects representing the clustered data.
    */
-  def run(sc: SparkContext,
-          rdd: RDD[DataPoint],
+  def run[A](sc: SparkContext,
+          rdd: RDD[DataPoint[A]],
           epsilon: Float,
           minPts: Int,
           numberOfPivots: Int,
           numberOfPartitions: Int,
           samplingDensity: Double = 0.001,
-          seed: Int = 42): RDD[DataPoint] = {
+          seed: Int = 42)(implicit m: Metric[A]): RDD[DataPoint[A]] = {
     require(numberOfPartitions < 16383, "Number of partitions must be < 2^14 - 1 (16383) because of how clusters are labeled.")
 
     val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
@@ -160,26 +163,26 @@ object DBSCAN_MS {
     clusteredRDD
   }
 
-  private def dbscan_ms(sc: SparkContext,
-                        rdd: RDD[DataPoint],
+  private def dbscan_ms[A](sc: SparkContext,
+                        rdd: RDD[DataPoint[A]],
                         epsilon: Float,
                         minPts: Int,
                         seed: Int,
                         numberOfPivots: Int,
                         numberOfPartitions: Int,
-                        sampledData: Array[DataPoint]): RDD[DataPoint] = {
+                        sampledData: Array[DataPoint[A]])(implicit m: Metric[A]): RDD[DataPoint[A]] = {
     val pivots = HFI(sampledData, numberOfPivots, seed)
     val subspaces = kSDA(sampledData, pivots, numberOfPartitions, seed, epsilon)
 
     val bcPivots = sc.broadcast(pivots)
     val bcSubspaces = sc.broadcast(subspaces)
 
-    val data: RDD[(Int, DataPoint)] = rdd.flatMap(kPA(_, bcPivots.value, bcSubspaces.value))
+    val data: RDD[(Int, DataPoint[A])] = rdd.flatMap(kPA(_, bcPivots.value, bcSubspaces.value))
 
     require(numberOfPartitions == subspaces.length, "Something has gone very wrong. Number of partitions does not match number of subspaces.")
     val partitionedRDD = data.partitionBy(new HashPartitioner(numberOfPartitions)).map(_._2)
 
-    val clusteredRDD: RDD[DataPoint] = partitionedRDD.mapPartitions(iter => {
+    val clusteredRDD: RDD[DataPoint[A]] = partitionedRDD.mapPartitions(iter => {
       val partition = iter.toArray
       val rng = new scala.util.Random(seed + TaskContext.getPartitionId())
       val dimension = rng.nextInt(partition.head.dimensions)
@@ -225,21 +228,25 @@ object DBSCAN_MS {
    * @param hasRightLabel Whether the input file contains a ground-truth label in the last column (default: `false`).
    * @return An RDD of [[DataPoint]] objects representing the parsed dataset.
    */
-  def readData(sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean): RDD[DataPoint] = {
+  def readData[A: ClassTag](sc: SparkContext, path: String, hasHeader: Boolean, hasRightLabel: Boolean)(implicit parser: LineParser[A]): RDD[DataPoint[A]] = {
     val rdd = sc.textFile(path).zipWithIndex()
     val rdd1 = if (hasHeader) rdd.filter(_._2 > 0) else rdd
-    rdd1.map { case (line, index) => makeDataPoint(line, index, hasRightLabel) }
+    val noHeader = if (hasHeader) rdd1.filter { case (_, i) => i > 0 } else rdd1
+    noHeader.map { case (line, index) =>
+      val data = parser.parse(line, hasRightLabel)
+      DataPoint(data, id = index)
+    }
   }
 
-  private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean = false): DataPoint = {
+  private def makeDataPoint(line: String, index: Long, hasRightLabel: Boolean = false): DataPoint[Array[Float]] = {
     val data = line.split(",").map(_.toFloat)
     val cleanedData = if (hasRightLabel) data.dropRight(1) else data
     DataPoint(cleanedData, id = index)
   }
 
-  private def estimatePivotNumber(rdd: RDD[DataPoint],
+  private def estimatePivotNumber[A](rdd: RDD[DataPoint[A]],
                                   samplingDensity: Double,
-                                  seed: Int): Int = {
+                                  seed: Int)(implicit m: Metric[A]): Int = {
     Console.out.println("Warning. Estimating the number of pivots may take a while on large samples.")
     val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
     val intrDim = IntrinsicDimensionality(sampledData)
@@ -250,4 +257,25 @@ object DBSCAN_MS {
     Console.out.println(f"Chosen number of pivots: $pivots")
     pivots
   }
+}
+
+
+trait LineParser[A] extends Serializable {
+  def parse(line: String, hasRightLabel: Boolean): A
+}
+
+object LineParsers {
+  implicit object CsvFloatVectorParser extends LineParser[Array[Float]] {
+    override def parse(line: String, hasRightLabel: Boolean): Array[Float] = {
+      val parts = line.split(',')
+      if (hasRightLabel) parts.dropRight(1).map(_.toFloat)
+      else parts.map(_.toFloat)
+    }
+  }
+}
+
+
+object DataFormats {
+  val Vector: String = "vector"
+  val TxtString: String = "txt"
 }

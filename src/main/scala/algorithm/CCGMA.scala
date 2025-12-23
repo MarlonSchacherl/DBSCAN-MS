@@ -13,15 +13,15 @@ object CCGMA {
    * connect clusters that share core points. It then identifies connected components
    * in the graph to assign global cluster IDs.
    *
-   * @param mergingCandidates An array of DataPoint objects to be merged into global clusters.
+   * @param mergingCandidates An array of DataPoint[A] objects to be merged into global clusters.
    * @return A map where keys are tuples of (partition, localCluster) and values are the corresponding global cluster IDs.
    */
-  def apply(mergingCandidates: Array[DataPoint]): Map[(Int, Int), Int] = {
+  def apply[A](mergingCandidates: Array[DataPoint[A]]): Map[(Int, Int), Int] = {
     execute(mergingCandidates)
   }
 
-  def execute(mergingCandidates: Array[DataPoint]): Map[(Int, Int), Int] = {
-    val mergingObjects: Map[Long, Array[DataPoint]] = mergingCandidates.groupBy(_.id)
+  def execute[A](mergingCandidates: Array[DataPoint[A]]): Map[(Int, Int), Int] = {
+    val mergingObjects: Map[Long, Array[DataPoint[A]]] = mergingCandidates.groupBy(_.id)
 
     val graph = new SimpleGraph[(Int, Int), DefaultEdge](classOf[DefaultEdge])
     for ((_, mObjects) <- mergingObjects) {

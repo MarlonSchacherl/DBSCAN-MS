@@ -1,7 +1,7 @@
 package algorithm
 
 import model.{DataPoint, Subspace}
-import utils.MapPointToVectorSpace
+import utils.{MapPointToVectorSpace, Metric}
 
 import scala.util.Random
 import scala.collection.mutable
@@ -17,18 +17,18 @@ object kSDA {
    * @param seed Optional seed for reproducibility. Defaults to a random seed.
    * @return An array of Subspaces containing the coordinates of the bounding box.
    */
-  def apply(dataset: Array[DataPoint], pivots: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt(), epsilon: Float): Array[Subspace] = {
+  def apply[A](dataset: Array[DataPoint[A]], pivots: Array[DataPoint[A]], numberOfPartitions: Int, seed: Int = Random.nextInt(), epsilon: Float)(implicit m: Metric[A]): Array[Subspace[A]] = {
     execute(dataset, pivots, numberOfPartitions, seed, epsilon)
   }
 
-  def execute(dataset: Array[DataPoint], pivots: Array[DataPoint], numberOfPartitions: Int, seed: Int = Random.nextInt(), epsilon: Float): Array[Subspace] = {
+  def execute[A](dataset: Array[DataPoint[A]], pivots: Array[DataPoint[A]], numberOfPartitions: Int, seed: Int = Random.nextInt(), epsilon: Float)(implicit m: Metric[A]): Array[Subspace[A]] = {
     require(dataset.nonEmpty, "Dataset must not be empty")
     require(numberOfPartitions > 0, "Number of partitions must be greater than zero")
 
     val rng = new Random(seed)
 
     dataset.foreach(point => point.vectorRep = MapPointToVectorSpace(point, pivots))
-    val subspace: Subspace = Subspace(dataset, Array.fill(dataset.head.dimensions)((Float.NaN, Float.NaN)), epsilon)
+    val subspace: Subspace[A] = Subspace(dataset, Array.fill(dataset.head.dimensions)((Float.NaN, Float.NaN)), epsilon)
     val q = mutable.Queue.apply(subspace)
 
     while (q.length < numberOfPartitions) {
