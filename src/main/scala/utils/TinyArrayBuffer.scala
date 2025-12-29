@@ -2,7 +2,7 @@ package utils
 
 /**
  * A minimalistic, memory-efficient alternative to `scala.collection.mutable.ArrayBuffer`
- * that avoids boxing, reducing memory usage to roughly one quarter of the standard implementation.
+ * that avoids boxing, reducing memory usage compared to the standard implementation.
  *
  * Only provides methods to append elements one at a time, returning length and converting to a plain `Array[Int]`.
  *

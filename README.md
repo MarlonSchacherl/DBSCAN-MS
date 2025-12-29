@@ -1,6 +1,6 @@
 ## Execution
 
-This application runs in two modes supporting either 8 or 10 arguments.
+This application runs in two modes supporting either 9 or 11 arguments.
 
 ### Argument Order and Types
 
@@ -19,7 +19,8 @@ A directory for the metrics needs to be provided. Results won't be collected, on
 |   5   | `numberOfPartitions` | **Int**    | Number of Spark partitions.                                                                                                                                                 |
 |   6   | `samplingDensity`    | **Float**  | Density of random sampling used to select pivots (0.0 < density $\leq$ 1.0. (E.g., 0.01 is 1% of the data)). Sample size significantly impacts pivot selection performance. |
 |   7   | `seed`               | **Int**    | Random seed for reproducibility.                                                                                                                                            |
-|   8   | `metricsPath`        | **String** | Path to output metrics file.                                                                                                                                                |
+|   8   | `format`             | **String** | Specifies the datatype of the dataset and the distance measure to be used.                                                                                                  |
+|   9   | `metricsPath`        | **String** | Path to output metrics file.                                                                                                                                                |
 
 ---
 
@@ -36,24 +37,31 @@ Flags for collecting results and input data need to be set.
 |   5   | `numberOfPartitions` | **Int**     | Number of Spark partitions.                                                                                                                                                 |
 |   6   | `samplingDensity`    | **Float**   | Density of random sampling used to select pivots (0.0 < density $\leq$ 1.0. (E.g., 0.01 is 1% of the data)). Sample size significantly impacts pivot selection performance. |
 |   7   | `seed`               | **Int**     | Random seed for reproducibility.                                                                                                                                            |
-|   8   | `dataHasHeader`      | **Boolean** | If `true`, skips the first row of the input file. **(Default: `false`)**                                                                                                    |
-|   9   | `dataHasRightLabel`  | **Boolean** | If `true`, treats the last column as a ground truth label for evaluation/output. **(Default: `false`)**                                                                     |
-|  10   | `collectResult`      | **Boolean** | If `true`, collects results to the driver and prints cluster counts to the console.  **(Default: `false`)**                                                                 |
+|   8   | `format`             | **String**  | Specifies the datatype of the dataset and the distance measure to be used.                                                                                                  |
+|   9   | `dataHasHeader`      | **Boolean** | If `true`, skips the first row of the input file. **(Default: `false`)**                                                                                                    |
+|  10   | `dataHasRightLabel`  | **Boolean** | If `true`, treats the last column as a ground truth label for evaluation/output. **(Default: `false`)**                                                                     |
+|  11   | `collectResult`      | **Boolean** | If `true`, collects results to the driver and prints cluster counts to the console.  **(Default: `false`)**                                                                 |
 
 ---
 
 ### Usage Example
 
-**Minimal Command (7 Arguments):**
+**Mode 1 (9 Arguments):**
 This example omits the optional arguments, defaulting them to `false`. The application will not collect results to the driver. 
 
 ```
-spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42
+spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42 vector metricsdir
 ```
 
-**Full Command (10 Arguments):**
+**Mode 2 (11 Arguments):**
 This example uses all optional arguments, setting `dataHasHeader` and `collectResults` to `true`.
 
 ```
-spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42 true false true
+spark-submit --class app.Main target/dbscanms-assembly.jar data/input.csv 0.5 5 10 8 0.01 42 txt true false true
 ```
+
+### Formats
+Currently supported formats are:
+- `vector`: Vectors are expected to be comma-separated numerical values. Euclidean distance is used as the distance measure.
+- `txt`: Text files where each line is treated as one String. Levenshtein distance is used as the distance measure.
+
