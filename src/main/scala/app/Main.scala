@@ -1,11 +1,10 @@
 package app
 
-import algorithm.LineParsers.CsvFloatVectorParser
-import algorithm.{DBSCAN_MS, DataFormats, LineParsers}
+import algorithm.LineParsers.{CsvFloatVectorParser, TextStringParser}
+import algorithm.{DBSCAN_MS, DataFormats}
 import org.apache.spark.sql.SparkSession
 import testutils.GetResultLabels.printClusters
-import utils.Metrics
-import utils.Metrics.EuclideanArrayFloat
+import utils.Metrics.{EuclideanArrayFloat, LevenshteinString}
 
 import scala.util.{Failure, Success, Try}
 
@@ -111,7 +110,32 @@ object Main {
             }
           }
           else if (format == DataFormats.TxtString) {
-            ???
+            implicit val m: utils.Metric[String] = LevenshteinString
+            implicit val p: algorithm.LineParser[String] = TextStringParser
+            if (collectResults) {
+              val data = DBSCAN_MS.runFromFile[String](spark,
+                filepath,
+                epsilon,
+                minPts,
+                numberOfPivots,
+                numberOfPartitions,
+                samplingDensity,
+                seed,
+                dataHasHeader,
+                dataHasRightLabel)
+            }
+            else {
+              DBSCAN_MS.runWithoutCollect[String](spark,
+                filepath,
+                epsilon,
+                minPts,
+                numberOfPivots,
+                numberOfPartitions,
+                samplingDensity, seed,
+                metricsPath,
+                dataHasRightLabel,
+                dataHasHeader)
+            }
           }
           else {
             throw new IllegalArgumentException(s"Invalid format: $format")

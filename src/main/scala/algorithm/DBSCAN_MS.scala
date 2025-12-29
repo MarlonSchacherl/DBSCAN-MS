@@ -272,6 +272,15 @@ object LineParsers {
       else parts.map(_.toFloat)
     }
   }
+
+  implicit object TextStringParser extends LineParser[String] {
+    override def parse(line: String, hasRightLabel: Boolean): String = {
+      if (hasRightLabel) {
+        val parts = line.split(',')
+        parts.dropRight(1).mkString(",")
+      } else line
+    }
+  }
 }
 
 
