@@ -66,8 +66,8 @@ object GetResultLabels {
    *
    * @param result The clustered dataset as an array of [[DataPoint]]s.
    */
-  def printClusters(result: Array[DataPoint[Array[Float]]]): Unit = {
-    val predLabels = GetResultLabels(result)
+  def printClusters[A](result: Array[DataPoint[A]]): Unit = {
+    val predLabels = result.map(_.globalCluster)
     val groupedLabels = predLabels.groupBy(identity)
     groupedLabels.foreach(x => log.debug(s"Cluster ${x._1} has ${x._2.length} points"))
     log.info(s"Total clusters (including noise): ${groupedLabels.size}")

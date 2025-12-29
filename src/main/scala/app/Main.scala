@@ -123,6 +123,8 @@ object Main {
                 seed,
                 dataHasHeader,
                 dataHasRightLabel)
+
+              printClusters(data)
             }
             else {
               DBSCAN_MS.runWithoutCollect[String](spark,
