@@ -9,10 +9,18 @@ import org.apache.spark.{HashPartitioner, SparkContext, TaskContext}
 import utils.IntrinsicDimensionality
 
 import java.nio.file.Path
-import java.time.LocalTime
+import java.util
 
 object DBSCAN_MS {
   private val log = org.apache.log4j.LogManager.getLogger(DBSCAN_MS.getClass)
+
+  private final case class CommunicationCosts(partitioningPointsExchanged: Long,
+                                              mergingPointsExchanged: Long,
+                                              mergingEdgesExchanged: Long) {
+    def totalPointsExchanged: Long = partitioningPointsExchanged + mergingPointsExchanged
+  }
+
+  private final case class RunResult(clusteredRDD: RDD[DataPoint], communicationCosts: CommunicationCosts)
 
   /**
    * Convenience wrapper for [[run]] that reads the dataset from a file.
@@ -104,7 +112,7 @@ object DBSCAN_MS {
     log.info(rdd.count() + " data points loaded")
 
     val start = System.currentTimeMillis()
-    val count = run(sc,
+    val runResult = runWithCommunicationCosts(sc,
       rdd,
       epsilon,
       minPts,
@@ -112,17 +120,34 @@ object DBSCAN_MS {
       numberOfPartitions,
       samplingDensity,
       seed
-    ).count()
+    )
+    val count = runResult.clusteredRDD.count()
     val end = System.currentTimeMillis()
     log.info(f"Count: $count")
     val duration = (end - start) / 1000D / 60D
     log.info(f"DBSCAN-MS completed in ${duration.toInt} minutes.")
+
+    val communicationCosts = runResult.communicationCosts
+    log.info(s"Communication cost - exchanged points for partitioning: ${communicationCosts.partitioningPointsExchanged}")
+    log.info(s"Communication cost - exchanged points for merging: ${communicationCosts.mergingPointsExchanged}")
+    log.info(s"Communication cost - total exchanged points: ${communicationCosts.totalPointsExchanged}")
+    log.info(s"Communication cost - exchanged merging edges: ${communicationCosts.mergingEdgesExchanged}")
+
     val writer = new MetricWriter(Path.of(metricsPath))
     val datasetName = filepath.substring(filepath.lastIndexOf('/') + 1, filepath.lastIndexOf('.'))
-    val measurement = new Measurement[ClusterParameters, DatasetParameters]("DBSCAN-MS",
-                                                                            end - start,
-                                                                            new ClusterParameters(epsilon, minPts),
-                                                                            new DatasetParameters(datasetName))
+    val commCost = new util.HashMap[String, Object]()
+    commCost.put("exchangedPartitioningPoints", java.lang.Long.valueOf(communicationCosts.partitioningPointsExchanged))
+    commCost.put("exchangedMergingPoints", java.lang.Long.valueOf(communicationCosts.mergingPointsExchanged))
+    commCost.put("exchangedTotalPoints", java.lang.Long.valueOf(communicationCosts.totalPointsExchanged))
+    commCost.put("exchangedMergingEdges", java.lang.Long.valueOf(communicationCosts.mergingEdgesExchanged))
+
+    val measurement = new Measurement[ClusterParameters, DatasetParameters](
+      "DBSCAN-MS",
+      end - start,
+      new ClusterParameters(epsilon, minPts),
+      new DatasetParameters(datasetName),
+      commCost
+    )
     writer.writeMetrics(measurement)
 
   }
@@ -153,11 +178,21 @@ object DBSCAN_MS {
           numberOfPartitions: Int,
           samplingDensity: Double = 0.001,
           seed: Int = 42): RDD[DataPoint] = {
+    runWithCommunicationCosts(sc, rdd, epsilon, minPts, numberOfPivots, numberOfPartitions, samplingDensity, seed).clusteredRDD
+  }
+
+  private def runWithCommunicationCosts(sc: SparkContext,
+                                        rdd: RDD[DataPoint],
+                                        epsilon: Float,
+                                        minPts: Int,
+                                        numberOfPivots: Int,
+                                        numberOfPartitions: Int,
+                                        samplingDensity: Double = 0.001,
+                                        seed: Int = 42): RunResult = {
     require(numberOfPartitions < 4096, "Number of partitions must be < 2^12 (4096) because of how clusters are labeled.")
 
     val sampledData = rdd.sample(withReplacement = false, fraction = samplingDensity, seed = seed).collect()
-    val clusteredRDD = dbscan_ms(sc, rdd, epsilon, minPts, seed, numberOfPivots, numberOfPartitions, sampledData)
-    clusteredRDD
+    dbscan_ms(sc, rdd, epsilon, minPts, seed, numberOfPivots, numberOfPartitions, sampledData)
   }
 
   private def dbscan_ms(sc: SparkContext,
@@ -167,14 +202,15 @@ object DBSCAN_MS {
                         seed: Int,
                         numberOfPivots: Int,
                         numberOfPartitions: Int,
-                        sampledData: Array[DataPoint]): RDD[DataPoint] = {
+                        sampledData: Array[DataPoint]): RunResult = {
     val pivots = HFI(sampledData, numberOfPivots, seed)
     val subspaces = kSDA(sampledData, pivots, numberOfPartitions, seed, epsilon)
 
     val bcPivots = sc.broadcast(pivots)
     val bcSubspaces = sc.broadcast(subspaces)
 
-    val data: RDD[(Int, DataPoint)] = rdd.flatMap(kPA(_, bcPivots.value, bcSubspaces.value))
+    val data: RDD[(Int, DataPoint)] = rdd.flatMap(kPA(_, bcPivots.value, bcSubspaces.value)).cache()
+    val partitioningPointsExchanged = data.count()
 
     require(numberOfPartitions == subspaces.length, "Something has gone very wrong. Number of partitions does not match number of subspaces.")
     val partitionedRDD = data.partitionBy(new HashPartitioner(numberOfPartitions)).map(_._2)
@@ -195,13 +231,14 @@ object DBSCAN_MS {
     val mergingCandidates = clusteredRDD.filter(point =>
       (point.mask == MASK.MARGIN_OUTER || point.mask == MASK.MARGIN_INNER) &&
         (point.label == LABEL.CORE || point.label == LABEL.BORDER)).collect()
-    val bcGlobalClusterMappings = sc.broadcast(CCGMA(mergingCandidates))
+    val mergingResult = CCGMA.executeWithStats(mergingCandidates)
+    val bcGlobalClusterMappings = sc.broadcast(mergingResult.globalClusterMappings)
 
     // Filter duplicates and
     // Merge local clusters into global clusters. If one cluster sits entirely in one partition,
     // we give it a unique ID by encoding the partition number in the high bits.
     val bitOffset = 19
-    clusteredRDD.filter(_.mask != MASK.MARGIN_OUTER).map(point => {
+    val mergedRDD = clusteredRDD.filter(_.mask != MASK.MARGIN_OUTER).map(point => {
       bcGlobalClusterMappings.value.get((point.partition, point.localCluster)) match {
         case Some(cluster) => point.globalCluster = cluster
         case None => point.globalCluster = if (point.localCluster == -1) -1 else {
@@ -210,6 +247,11 @@ object DBSCAN_MS {
       }
       point
     })
+
+    val communicationCosts = CommunicationCosts(partitioningPointsExchanged,
+      mergingCandidates.length.toLong,
+      mergingResult.transferredEdges)
+    RunResult(mergedRDD, communicationCosts)
   }
 
   /**

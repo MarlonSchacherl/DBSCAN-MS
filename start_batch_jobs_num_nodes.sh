@@ -10,13 +10,13 @@ if [ ! -f "./run.slurm" ]; then
 fi
 
 # Number of nodes to iterate over (adjust as needed for your cluster)
-node_counts=(1 2 4 8 16)
+node_counts=(1 2 4 6 8 10)
 
 # Fixed number of partitions
 num_partitions=128
 
 # Create a grid of batch jobs
-datasets=("densired_2.csv" "densired_3.csv" "densired_4.csv" "densired_5.csv" "activity.csv" "geolife_gps_data.csv" "twitter_processed.csv" "tng_50.csv")
+datasets=("densired_2.csv" "densired_3.csv" "densired_4.csv" "densired_5.csv") # "activity.csv" "geolife_gps_data.csv" "twitter_processed.csv" "tng_50.csv")
 dims=(2 3 4 5 3 3 2 3)
 min_pts_values=(10 10 10 10 50 40 50 50)
 eps_values=(0.15 0.15 0.15 0.15 0.15 70 0.15 6)
@@ -45,7 +45,10 @@ for num_nodes in "${node_counts[@]}"; do
 
     echo "Running dataset=$dataset dim=$dim eps=$eps minPts=$min_pts nodes=$num_nodes"
 
-    sbatch --nodes="$num_nodes" --time=01:00:00 run.sh "/scratch_shared/siepef/datasets/$dataset" "$dim" "$eps" "$min_pts" "$num_partitions" "$exp_dir"
+    num_pivot=$((2 * dim))
+    sampling_density=0.001
+
+    sbatch --nodes="$num_nodes" --ntasks="$num_nodes" --ntasks-per-node=1 --time=05:00:00 run.slurm "/scratch_shared/siepef/datasets/$dataset" "$dim" "$eps" "$min_pts" "$num_partitions" "$exp_dir" "$num_pivot" "$sampling_density"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
       echo "-> FAILED: $dataset nodes=$num_nodes (exit $exit_code)"

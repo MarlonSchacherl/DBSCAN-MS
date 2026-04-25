@@ -7,6 +7,8 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 
 object CCGMA {
+  final case class Result(globalClusterMappings: Map[(Int, Int), Int], transferredEdges: Long)
+
   /**
    * Applies the CCGMA merging algorithm to the merging candidates.
    * The algorithm constructs a graph where local clusters are vertices and edges
@@ -21,9 +23,14 @@ object CCGMA {
   }
 
   def execute(mergingCandidates: Array[DataPoint]): Map[(Int, Int), Int] = {
+    executeWithStats(mergingCandidates).globalClusterMappings
+  }
+
+  def executeWithStats(mergingCandidates: Array[DataPoint]): Result = {
     val mergingObjects: Map[Long, Array[DataPoint]] = mergingCandidates.groupBy(_.id)
 
     val graph = new SimpleGraph[(Int, Int), DefaultEdge](classOf[DefaultEdge])
+    var transferredEdges = 0L
     for ((_, mObjects) <- mergingObjects) {
       val localClusterToMergingObject = mObjects.map(x => ((x.partition, x.localCluster), x)).toMap
       val localResults = localClusterToMergingObject.keys.toArray.distinct
@@ -37,16 +44,19 @@ object CCGMA {
             || localClusterToMergingObject.getOrElse(c2, null).label == LABEL.CORE) {
             graph.addVertex(c1)
             graph.addVertex(c2)
-            graph.addEdge(c1, c2)
+            if (graph.addEdge(c1, c2) != null) {
+              transferredEdges += 1
+            }
           }
         }
       }
     }
     val connectedComponents = new ConnectivityInspector[(Int, Int), DefaultEdge](graph).connectedSets()
 
-    connectedComponents.asScala.zipWithIndex.flatMap { case (globalCluster, index) =>
+    val globalClusterMappings = connectedComponents.asScala.zipWithIndex.flatMap { case (globalCluster, index) =>
         val globalClusterID = index + 1
         globalCluster.asScala.map((_, globalClusterID))
       }.toMap
+    Result(globalClusterMappings, transferredEdges)
   }
 }
